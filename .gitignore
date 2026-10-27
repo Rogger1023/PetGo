@@ -1,0 +1,14 @@
+# Arquivos de ambiente e segredos
+**/.env
+**/.env.*
+!**/.env.example
+
+# Dependências
+**/vendor/
+**/node_modules/
+
+# Arquivos gerados pelo sistema
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
