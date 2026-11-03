@@ -179,3 +179,5 @@ Antes de considerar um endpoint concluído, documentar:
 5. Possíveis códigos de erro.
 6. Regras de validação e de negócio.
 
+
+

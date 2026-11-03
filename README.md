@@ -1,4 +1,4 @@
-# Estante Livre
+# PetGo
 
 E-commerce educacional com temática de livraria.
 

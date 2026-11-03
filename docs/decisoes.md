@@ -1,4 +1,4 @@
-# Decisões técnicas — Estante Livre
+# Decisões técnicas — PetGo
 
 ## Arquitetura
 - Frontend independente em HTML, CSS e JavaScript.
