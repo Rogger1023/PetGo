@@ -3,41 +3,38 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\User;
+use App\Http\Requests\RegisterRequest;
+use App\Http\Requests\LoginRequest;
+use App\Services\AuthService;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 
 class AuthController extends Controller
 {
-    public function register(Request $request): JsonResponse
+    public function __construct(
+        private readonly AuthService $authService
+    ) {}
+
+    public function register(RegisterRequest $request): JsonResponse
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users,email',
-            'password' => 'required|string|min:8|confirmed',
-        ]);
+        $data = $request->validated();
 
-        $user = User::create([
-            'name' => $validated['name'],
-            'email' => $validated['email'],
-            'password' => $validated['password'],
-        ]);
+        $result = $this->authService->register($data);
 
-        // Cadastro público sempre cria um cliente.
-        $user->role = 'customer';
-        $user->save();
+        return response()->json($result, 201);
+    }
 
-        // Gera um token de acesso para o novo usuário.
-        $token = $user->createToken('auth-token')->plainTextToken;
+    public function login(LoginRequest $request): JsonResponse
+    {
+        $credentials = $request->validated();
 
-        return response()->json([
-            'user' => $user->only([
-                'id',
-                'name',
-                'email',
-                'role',
-            ]),
-            'token' => $token,
-        ], 201);
+        $result = $this->authService->login($credentials);
+
+        if ($result === null) {
+            return response()->json([
+                'message' => 'Credenciais inválidas.'
+            ], 401);
+        }
+
+        return response()->json($result, 200);
     }
 }
