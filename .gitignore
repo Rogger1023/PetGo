@@ -3,6 +3,9 @@
 **/.env.*
 !**/.env.example
 
+# Credenciais e anotações locais
+/docs/git.md
+
 # Dependências
 **/vendor/
 **/node_modules/
