@@ -1,9 +1,9 @@
 <?php
 
 use App\Http\Controllers\Api\ProductController;
+use App\Http\Controllers\Api\AuthController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
-use App\Http\Controllers\Api\AuthController;
 
 Route::get('/health', function () {
     return response()->json([
@@ -29,3 +29,6 @@ Route::middleware('auth:sanctum')->get('/me', function (Request $request) {
 Route::post('/register', [AuthController::class, 'register']);
 
 Route::post('/login', [AuthController::class, 'login']);
+
+Route::middleware('auth:sanctum')
+    ->post('/logout', [AuthController::class, 'logout']);

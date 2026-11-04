@@ -7,6 +7,7 @@ use App\Http\Requests\RegisterRequest;
 use App\Http\Requests\LoginRequest;
 use App\Services\AuthService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class AuthController extends Controller
 {
@@ -36,5 +37,15 @@ class AuthController extends Controller
         }
 
         return response()->json($result, 200);
+    }
+    public function logout(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        $this->authService->logout($user);
+
+        return response()->json([
+            'message' => 'Logout realizado com sucesso.'
+        ], 200);
     }
 }

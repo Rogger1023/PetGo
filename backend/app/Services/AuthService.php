@@ -34,6 +34,11 @@ class AuthService
         return $this->generateAuthData($user);
     }
 
+    public function logout(User $user): void
+    {
+        $user->currentAccessToken()->delete();
+    }
+
     private function generateAuthData(User $user): array
     {
         $token = $user->createToken('auth-token')->plainTextToken;

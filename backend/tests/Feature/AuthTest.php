@@ -120,4 +120,92 @@ class AuthTest extends TestCase
         ])->assertUnprocessable()
           ->assertJsonValidationErrors(['password']);
     }
+    public function test_logout_revokes_current_token(): void
+    {
+        // Cria um usuário para o teste.
+        $user = User::factory()->create();
+
+        // Gera um token Sanctum.
+        $token = $user->createToken('auth-token')->plainTextToken;
+
+        // Verifica que o token existe no banco.
+        $this->assertDatabaseCount('personal_access_tokens', 1);
+
+        // Executa o logout.
+        $this->withToken($token)
+            ->postJson('/api/logout')
+            ->assertOk()
+            ->assertJsonPath('message', 'Logout realizado com sucesso.');
+
+        // Confirma que o token foi revogado.
+        $this->assertDatabaseCount('personal_access_tokens', 0);
+
+        // Limpa os guards em memória para simular
+        // uma nova requisição com autenticação independente.
+        app('auth')->forgetGuards();
+
+        // Tenta reutilizar o token revogado.
+        $this->withToken($token)
+            ->getJson('/api/me')
+            ->assertUnauthorized();
+    }
+
+    public function test_logout_without_authentication_returns_401(): void
+    {
+        // Tenta realizar logout sem enviar um token.
+        $response = $this->postJson('/api/logout');
+
+        // Verifica se o acesso foi negado.
+        $response->assertUnauthorized();
+
+        // Confirma que nenhum token foi criado.
+        $this->assertDatabaseCount('personal_access_tokens', 0);
+    }
+    public function test_logout_revokes_only_current_token(): void
+    {
+        // Cria um usuário para o teste.
+        $user = User::factory()->create();
+
+        // Simula autenticação em dois dispositivos.
+        $tokenComputador = $user->createToken('computador');
+        $tokenCelular = $user->createToken('celular');
+
+        // Confirma que existem dois tokens.
+        $this->assertDatabaseCount('personal_access_tokens', 2);
+
+        // Realiza logout utilizando o token do computador.
+        $this->withToken($tokenComputador->plainTextToken)
+            ->postJson('/api/logout')
+            ->assertOk();
+
+        // Verifica se o token do computador foi removido.
+        $this->assertDatabaseMissing('personal_access_tokens', [
+            'id' => $tokenComputador->accessToken->id,
+        ]);
+
+        // Verifica se o token do celular continua armazenado.
+        $this->assertDatabaseHas('personal_access_tokens', [
+            'id' => $tokenCelular->accessToken->id,
+        ]);
+
+        // Deve restar somente um token.
+        $this->assertDatabaseCount('personal_access_tokens', 1);
+
+        // Limpa o estado de autenticação entre requisições.
+        app('auth')->forgetGuards();
+
+        // O token do computador não pode mais acessar a API.
+        $this->withToken($tokenComputador->plainTextToken)
+            ->getJson('/api/me')
+            ->assertUnauthorized();
+
+        // Limpa novamente o estado de autenticação.
+        app('auth')->forgetGuards();
+
+        // O token do celular deve continuar funcionando.
+        $this->withToken($tokenCelular->plainTextToken)
+            ->getJson('/api/me')
+            ->assertOk()
+            ->assertJsonPath('user.id', $user->id);
+    }
 }
