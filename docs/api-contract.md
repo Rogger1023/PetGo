@@ -151,14 +151,70 @@ respostas de erro será implementada conforme os endpoints forem criados.
 
 ## 7. Regras de acesso
 
-- Consulta do catálogo: pública.
-- Dados pessoais, carrinho e pedidos do cliente: exigem autenticação.
-- Operações administrativas: exigem autenticação e autorização adequada.
-- Um cliente só pode acessar seus próprios dados e pedidos.
-- A validação de permissões deve ocorrer no backend, nunca apenas no frontend.
+### 7.1. Papéis de usuário
 
-O mecanismo de autenticação e suas rotas serão definidos na etapa
-específica de autenticação.
+O PetGo utiliza controle de acesso baseado em papéis (RBAC).
+
+Os papéis previstos são:
+
+- `customer`: cliente da loja.
+- `admin`: administrador da loja.
+
+Novos usuários cadastrados publicamente recebem o papel
+`customer` por padrão.
+
+O campo `role` não está incluído no `$fillable` do modelo
+User, evitando sua atribuição por preenchimento em massa.
+
+### 7.2. Autenticação e autorização
+
+A autenticação utiliza Laravel Sanctum com tokens Bearer.
+
+O middleware `auth:sanctum` verifica se o usuário está
+autenticado.
+
+O middleware `admin`, implementado pela classe
+`EnsureUserIsAdmin`, verifica se o usuário autenticado
+possui o papel `admin`.
+
+O modelo User disponibiliza o método `isAdmin()`,
+que retorna `true` somente para o papel `admin`.
+
+### 7.3. Regras de acesso
+
+- Consulta do catálogo: pública.
+- Dados pessoais, carrinho e pedidos: exigem autenticação.
+- Operações administrativas: exigem autenticação e papel `admin`.
+- Clientes só podem acessar seus próprios dados e pedidos.
+- As permissões devem ser verificadas no backend.
+
+A verificação de propriedade dos recursos será implementada
+conforme os endpoints de pedidos e dados pessoais forem criados.
+
+### 7.4. Respostas de autorização
+
+- `200 OK`: operação de consulta permitida e concluída.
+- `401 Unauthorized`: usuário não autenticado.
+- `403 Forbidden`: usuário autenticado sem permissão.
+
+### 7.5. Estado da implementação
+
+O middleware administrativo está implementado, registrado
+com o alias `admin` e coberto por testes automatizados.
+
+Ainda não existem endpoints administrativos protegidos
+por esse middleware. A proteção será aplicada quando
+essas rotas forem implementadas.
+
+Os testes de autorização verificam:
+
+1. Acesso permitido para administradores.
+2. Acesso negado para clientes.
+3. Acesso negado para visitantes não autenticados.
+4. Acesso negado para papéis desconhecidos.
+5. Preservação do acesso às rotas públicas.
+6. Identificação correta do papel pelo método `isAdmin()`.
+
 
 ## 8. Paginação
 
