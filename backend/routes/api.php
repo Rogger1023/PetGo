@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\CartController;
 use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ProductController;
@@ -51,7 +52,16 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     Route::post('/logout', [AuthController::class, 'logout']);
+    // Carrinho do usuário autenticado
+    Route::get('/cart', [CartController::class, 'index']);
 
+    Route::post('/cart/items', [CartController::class, 'store']);
+
+    Route::patch('/cart/items/{item}', [CartController::class, 'update'])
+        ->whereNumber('item');
+
+    Route::delete('/cart/items/{item}', [CartController::class, 'destroy'])
+        ->whereNumber('item');
 });
 
 /*
