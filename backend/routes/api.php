@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ProductController;
 use Illuminate\Http\Request;
@@ -20,6 +21,10 @@ Route::get('/health', function () {
 
 // Catálogo público: somente produtos ativos
 Route::apiResource('products', ProductController::class)
+    ->only(['index', 'show']);
+
+// Categorias públicas
+Route::apiResource('categories', CategoryController::class)
     ->only(['index', 'show']);
 
 // Autenticação
@@ -61,6 +66,9 @@ Route::prefix('admin')
     ->group(function () {
 
         Route::apiResource('products', ProductController::class)
+            ->only(['store', 'update', 'destroy']);
+
+        Route::apiResource('categories', CategoryController::class)
             ->only(['store', 'update', 'destroy']);
 
     });
