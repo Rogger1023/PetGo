@@ -1,9 +1,15 @@
 <?php
 
-use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\AuthController;
-use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Api\ProductController;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Route;
+
+/*
+|--------------------------------------------------------------------------
+| Rotas públicas
+|--------------------------------------------------------------------------
+*/
 
 Route::get('/health', function () {
     return response()->json([
@@ -12,23 +18,49 @@ Route::get('/health', function () {
     ]);
 });
 
+// Catálogo público: somente produtos ativos
 Route::apiResource('products', ProductController::class)
-    ->only(['index']);
+    ->only(['index', 'show']);
 
-Route::middleware('auth:sanctum')->get('/me', function (Request $request) {
-    return response()->json([
-        'user' => $request->user()->only([
-            'id',
-            'name',
-            'email',
-            'role',
-        ]),
-    ]);
-});
-
+// Autenticação
 Route::post('/register', [AuthController::class, 'register']);
-
 Route::post('/login', [AuthController::class, 'login']);
 
-Route::middleware('auth:sanctum')
-    ->post('/logout', [AuthController::class, 'logout']);
+/*
+|--------------------------------------------------------------------------
+| Rotas de usuários autenticados
+|--------------------------------------------------------------------------
+*/
+
+Route::middleware('auth:sanctum')->group(function () {
+
+    Route::get('/me', function (Request $request) {
+        return response()->json([
+            'user' => $request->user()->only([
+                'id',
+                'name',
+                'email',
+                'role',
+            ]),
+        ]);
+    });
+
+    Route::post('/logout', [AuthController::class, 'logout']);
+
+});
+
+/*
+|--------------------------------------------------------------------------
+| Rotas administrativas
+|--------------------------------------------------------------------------
+*/
+
+Route::prefix('admin')
+    ->name('admin.')
+    ->middleware(['auth:sanctum', 'admin']) //Sanctum para autenticação e middleware admin para verificar se o usuário é administrador
+    ->group(function () {
+
+        Route::apiResource('products', ProductController::class)
+            ->only(['store', 'update', 'destroy']);
+
+    });
