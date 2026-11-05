@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\CheckoutController;
 use App\Http\Controllers\Api\GuestCartController;
 use App\Http\Controllers\Api\CartController;
 use App\Http\Controllers\Api\CategoryController;
@@ -80,6 +81,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::delete('/cart/items/{item}', [CartController::class, 'destroy'])
         ->whereNumber('item');
+        Route::post('/checkout', [CheckoutController::class, 'store']);
 });
 
 /*
