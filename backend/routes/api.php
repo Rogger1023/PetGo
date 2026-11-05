@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\AddressController;
 use App\Http\Controllers\Api\OrderHistoryController;
 use App\Http\Controllers\Api\AdminOrderHistoryController;
 use App\Http\Controllers\Api\OrderFulfillmentController;
@@ -108,6 +109,25 @@ Route::middleware('auth:sanctum')->group(function () {
     )
         ->whereNumber('order')
         ->name('orders.history');
+        
+    // Endereços do cliente autenticado
+    Route::get('/addresses', [AddressController::class, 'index'])
+        ->name('addresses.index');
+
+    Route::post('/addresses', [AddressController::class, 'store'])
+        ->name('addresses.store');
+
+    Route::get('/addresses/{address}', [AddressController::class, 'show'])
+        ->whereNumber('address')
+        ->name('addresses.show');
+
+    Route::put('/addresses/{address}', [AddressController::class, 'update'])
+        ->whereNumber('address')
+        ->name('addresses.update');
+
+    Route::delete('/addresses/{address}', [AddressController::class, 'destroy'])
+        ->whereNumber('address')
+        ->name('addresses.destroy');
 });
 
 /*
