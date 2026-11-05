@@ -89,7 +89,9 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::delete('/cart/items/{item}', [CartController::class, 'destroy'])
         ->whereNumber('item');
-    Route::post('/checkout', [CheckoutController::class, 'store']);
+    
+    Route::post('/checkout', [CheckoutController::class, 'store'])
+        ->middleware('throttle:10,1');
 
         // Histórico de pedidos do usuário
     Route::get('/orders', [OrderController::class, 'index']);

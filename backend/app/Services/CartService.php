@@ -64,24 +64,23 @@ class CartService
             $productId,
             $quantity
         ) {
-            // Bloqueia o carrinho durante a operação.
             $cart = Cart::query()
                 ->whereKey($cart->id)
                 ->where('status', 'active')
                 ->lockForUpdate()
                 ->firstOrFail();
 
-            // Bloqueia o produto para validar o estoque.
             $product = Product::query()
                 ->lockForUpdate()
                 ->findOrFail($productId);
 
             $this->validateProduct($product);
 
-            // Verifica se o produto já está no carrinho.
             $item = $cart->items()
                 ->where('product_id', $product->id)
                 ->first();
+
+            $this->validateQuantity($quantity);
 
             $newQuantity = ($item?->quantity ?? 0) + $quantity;
 
@@ -207,12 +206,29 @@ class CartService
     }
 
     private function validateStock(
-        Product $product,
-        int $quantity
+    Product $product,
+    int $quantity
     ): void {
+        
+        $this->validateQuantity($quantity);
+
         if ($quantity > $product->stock) {
             throw ValidationException::withMessages([
                 'quantity' => 'Quantidade superior ao estoque disponível.',
+            ]);
+        }
+    }
+    private function validateQuantity(int $quantity): void
+    {
+        $maxQuantity = (int) config(
+            'cart.max_quantity_per_item',
+            20
+        );
+
+        if ($quantity < 1 || $quantity > $maxQuantity) {
+            throw ValidationException::withMessages([
+                'quantity' =>
+                    "A quantidade deve estar entre 1 e {$maxQuantity} unidades por produto.",
             ]);
         }
     }

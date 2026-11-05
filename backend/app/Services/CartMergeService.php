@@ -19,15 +19,12 @@ class CartMergeService
     public function merge(User $user, string $guestToken): Cart
     {
         return DB::transaction(function () use ($user, $guestToken) {
-
-            // 1. Localiza e bloqueia o carrinho do usuário.
+ 
             $userCart = $this->cartService->getCart($user);
-
-            // 2. Identifica o carrinho visitante pelo token.
+    
             $guestCart = $this->guestCartService
                 ->findByToken($guestToken);
-
-            // 3. Bloqueia o carrinho visitante.
+         
             $guestCart = Cart::query()
                 ->whereKey($guestCart->id)
                 ->whereNull('user_id')
@@ -35,12 +32,15 @@ class CartMergeService
                 ->lockForUpdate()
                 ->firstOrFail();
 
-            // 4. Carrega os itens em ordem previsível.
             $guestItems = $guestCart->items()
                 ->orderBy('product_id')
                 ->get();
 
-            // 5. Valida todos os itens antes de alterar qualquer um.
+            $maxQuantity = (int) config(
+                'cart.max_quantity_per_item',
+                20
+            );
+    
             foreach ($guestItems as $guestItem) {
                 $product = Product::query()
                     ->lockForUpdate()
@@ -59,6 +59,17 @@ class CartMergeService
                 $totalQuantity = $guestItem->quantity
                     + ($existingItem?->quantity ?? 0);
 
+                    if (
+                    $guestItem->quantity < 1 ||
+                    $totalQuantity < 1 ||
+                    $totalQuantity > $maxQuantity
+                ) {
+                    throw ValidationException::withMessages([
+                        'cart' =>
+                            "O produto {$product->id} deve respeitar o limite de {$maxQuantity} unidades por carrinho.",
+                    ]);
+                }
+
                 if ($totalQuantity > $product->stock) {
                     throw ValidationException::withMessages([
                         'cart' => "Estoque insuficiente para o produto {$product->id}.",
@@ -66,7 +77,6 @@ class CartMergeService
                 }
             }
 
-            // 6. Transfere as quantidades para o carrinho autenticado.
             foreach ($guestItems as $guestItem) {
                 $existingItem = $userCart->items()
                     ->where('product_id', $guestItem->product_id)
@@ -85,10 +95,7 @@ class CartMergeService
                 }
             }
 
-            // 7. Remove os itens transferidos do carrinho visitante.
             $guestCart->items()->delete();
-
-            // 8. Invalida o carrinho e seu token.
             $guestCart->status = 'merged';
             $guestCart->guest_token_hash = null;
             $guestCart->save();
