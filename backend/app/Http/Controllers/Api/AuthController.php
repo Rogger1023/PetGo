@@ -28,16 +28,24 @@ class AuthController extends Controller
     {
         $credentials = $request->validated();
 
-        $result = $this->authService->login($credentials);
+        // Obtém o token opcional do carrinho visitante.
+        $guestCartToken = $request->header('X-Guest-Cart-Token');
+
+        // Realiza o login e, quando houver token, mescla os carrinhos.
+        $result = $this->authService->login(
+            $credentials,
+            $guestCartToken
+        );
 
         if ($result === null) {
             return response()->json([
-                'message' => 'Credenciais inválidas.'
+                'message' => 'Credenciais inválidas.',
             ], 401);
         }
 
         return response()->json($result, 200);
     }
+
     public function logout(Request $request): JsonResponse
     {
         $user = $request->user();
