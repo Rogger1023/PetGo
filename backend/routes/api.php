@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\PaymentConfirmationController;
 use App\Http\Controllers\Api\OrderCancellationController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\AdminOrderController;
@@ -122,4 +123,11 @@ Route::prefix('admin')
         Route::get('/orders/{order}', [AdminOrderController::class, 'show'])
             ->whereNumber('order')
             ->name('orders.show');
+        // Confirmação simulada de pagamento
+        Route::post(
+            '/orders/{order}/confirm-payment',
+            PaymentConfirmationController::class
+        )
+            ->whereNumber('order')
+            ->name('orders.confirm-payment');
     });
