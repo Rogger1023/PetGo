@@ -35,4 +35,11 @@ class Order extends Model
     {
         return $this->hasOne(Payment::class);
     }
+    public function statusHistories(): HasMany
+    {
+        return $this->hasMany(
+            OrderStatusHistory::class,
+            'order_id'
+        );
+    }
 }

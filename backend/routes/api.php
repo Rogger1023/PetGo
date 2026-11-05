@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\Api\OrderHistoryController;
+use App\Http\Controllers\Api\AdminOrderHistoryController;
 use App\Http\Controllers\Api\OrderFulfillmentController;
 use App\Http\Controllers\Api\PaymentConfirmationController;
 use App\Http\Controllers\Api\OrderCancellationController;
@@ -98,6 +100,14 @@ Route::middleware('auth:sanctum')->group(function () {
         '/orders/{order}/cancel',
         OrderCancellationController::class
     )->whereNumber('order');
+
+    // Histórico de pedidos do cliente autenticado.
+    Route::get(
+        '/orders/{order}/history',
+        OrderHistoryController::class
+    )
+        ->whereNumber('order')
+        ->name('orders.history');
 });
 
 /*
@@ -138,4 +148,11 @@ Route::prefix('admin')
         )
             ->whereNumber('order')
             ->name('orders.update-status');
+        // Histórico administrativo dos pedidos.
+        Route::get(
+            '/orders/{order}/history',
+            AdminOrderHistoryController::class
+        )
+            ->whereNumber('order')
+            ->name('orders.history');
     });

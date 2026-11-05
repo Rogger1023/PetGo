@@ -75,15 +75,29 @@ class OrderCancellationService
                 $product->save();
             }
 
-            // 7. Cancela o pagamento pendente.
+            // Guarda o status anterior antes de modificá-lo.
+            $previousStatus = $order->status;
+
+            // Cancela o pagamento pendente.
             $payment->status = 'cancelled';
             $payment->save();
 
-            // 8. Cancela o pedido.
+            // Cancela o pedido.
             $order->status = 'cancelled';
             $order->save();
 
+            // NOVO: registra o cancelamento no histórico.
+            app(OrderStatusHistoryService::class)->record(
+                order: $order,
+                fromStatus: $previousStatus,
+                toStatus: $order->status,
+                source: 'order_cancellation',
+                actor: $user
+            );
+
+            // Retorna o pedido com seus relacionamentos.
             return $order->fresh(['items', 'payment']);
+
 
         }, 3);
     }

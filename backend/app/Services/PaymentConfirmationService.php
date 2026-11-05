@@ -2,16 +2,16 @@
 
 namespace App\Services;
 
+use App\Models\User;
 use App\Models\Order;
 use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 
 class PaymentConfirmationService
 {
-    public function confirm(int $orderId): Order
+    public function confirm(int $orderId,?User $actor = null): Order
     {
-        return DB::transaction(function () use ($orderId) {
-
+        return DB::transaction(function () use ($orderId,$actor) {
             // 1. Bloqueia o pedido durante a confirmação.
             $order = Order::query()
                 ->whereKey($orderId)
@@ -48,15 +48,25 @@ class PaymentConfirmationService
                     'Este pedido não permite confirmação de pagamento.'
                 );
             }
-
-            // 5. Atualiza o pagamento.
+            // Guarda o status anterior antes da alteração.
+            $previousStatus = $order->status;
+            // Confirma o pagamento.
             $payment->status = 'paid';
             $payment->paid_at = now();
             $payment->save();
 
-            // 6. Atualiza o pedido.
+            // Atualiza o pedido.
             $order->status = 'processing';
             $order->save();
+
+            // Registra a mudança no histórico.
+            app(OrderStatusHistoryService::class)->record(
+                order: $order,
+                fromStatus: $previousStatus,
+                toStatus: $order->status,
+                source: 'payment_confirmation',
+                actor: $actor
+            );
 
             // 7. Retorna o pedido com seus relacionamentos.
             return $order->fresh([

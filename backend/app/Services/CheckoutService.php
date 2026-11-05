@@ -130,7 +130,14 @@ class CheckoutService
                 'reference',
             ]);
             $order->save();
-
+            // Registra a criação do pedido no histórico.
+            app(OrderStatusHistoryService::class)->record(
+                order: $order,
+                fromStatus: null,
+                toStatus: $order->status,
+                source: 'checkout',
+                actor: $user
+            );
             // 7. Registra os itens e reserva o estoque.
             foreach ($orderLines as $line) {
                 $product = $line['product'];
