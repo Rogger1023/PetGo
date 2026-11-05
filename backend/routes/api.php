@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\OrderCancellationController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\AdminOrderController;
 use App\Http\Controllers\Api\CheckoutController;
@@ -90,6 +91,11 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('/orders/{order}', [OrderController::class, 'show'])
         ->whereNumber('order');
+        // Cancelamento de pedidos do cliente
+    Route::post(
+        '/orders/{order}/cancel',
+        OrderCancellationController::class
+    )->whereNumber('order');
 });
 
 /*
