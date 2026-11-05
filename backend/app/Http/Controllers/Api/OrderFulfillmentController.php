@@ -22,7 +22,8 @@ class OrderFulfillmentController extends Controller
 
         $updatedOrder = $this->fulfillmentService->advance(
             $order,
-            $data['status']
+            $data['status'],
+            $request->user()
         );
 
         return new OrderResource($updatedOrder);

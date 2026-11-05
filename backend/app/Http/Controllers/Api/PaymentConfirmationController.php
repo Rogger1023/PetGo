@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\OrderResource;
 use App\Services\PaymentConfirmationService;
+use Illuminate\Http\Request;
 
 class PaymentConfirmationController extends Controller
 {
@@ -13,12 +14,16 @@ class PaymentConfirmationController extends Controller
     ) {
     }
 
-    public function __invoke(int $order): OrderResource
-    {
+   
+    public function __invoke(
+        Request $request,
+        int $order
+    ): OrderResource {
         $confirmedOrder = $this->paymentConfirmationService->confirm(
-            $order
+            $order,
+            $request->user()
         );
 
         return new OrderResource($confirmedOrder);
     }
-}
+    }

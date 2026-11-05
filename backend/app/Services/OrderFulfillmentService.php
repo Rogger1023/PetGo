@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\User;
 use App\Models\Order;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -10,8 +11,9 @@ use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 class OrderFulfillmentService
 {
     public function advance(
-        int $orderId,
-        string $targetStatus
+    int $orderId,
+    string $targetStatus,
+    ?User $actor = null
     ): Order {
 
         // 1. Aceita apenas estados de logística.
@@ -23,7 +25,8 @@ class OrderFulfillmentService
 
         return DB::transaction(function () use (
             $orderId,
-            $targetStatus
+            $targetStatus,
+            $actor
         ) {
 
             // 2. Bloqueia o pedido durante a atualização.
@@ -71,11 +74,23 @@ class OrderFulfillmentService
                 );
             }
 
-            // 7. Atualiza o estado do pedido.
+            // Preserva o status anterior.
+            $previousStatus = $order->status;
+
+            // Atualiza o pedido.
             $order->status = $targetStatus;
             $order->save();
 
-            // 8. Retorna o pedido atualizado.
+            // Registra a alteração no histórico.
+            app(OrderStatusHistoryService::class)->record(
+                order: $order,
+                fromStatus: $previousStatus,
+                toStatus: $order->status,
+                source: 'fulfillment',
+                actor: $actor
+            );
+
+            // Retorna o pedido atualizado.
             return $order->fresh([
                 'user',
                 'items',
