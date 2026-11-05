@@ -83,6 +83,18 @@ class CheckoutService
                     ]);
                 }
 
+                $maxQuantity = (int) config(
+                    'cart.max_quantity_per_item',
+                    20
+                );
+
+                if ($item->quantity > $maxQuantity) {
+                    throw ValidationException::withMessages([
+                        'cart' =>
+                            "O produto {$product->id} ultrapassa o limite de {$maxQuantity} unidades por pedido.",
+                    ]);
+                }
+
                 if (
                     $item->quantity < 1 ||
                     $item->quantity > $product->stock
