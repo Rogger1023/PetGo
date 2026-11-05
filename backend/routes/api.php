@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\OrderFulfillmentController;
 use App\Http\Controllers\Api\PaymentConfirmationController;
 use App\Http\Controllers\Api\OrderCancellationController;
 use App\Http\Controllers\Api\OrderController;
@@ -130,4 +131,11 @@ Route::prefix('admin')
         )
             ->whereNumber('order')
             ->name('orders.confirm-payment');
+        // Atualização do andamento logístico do pedido
+        Route::patch(
+            '/orders/{order}/status',
+            OrderFulfillmentController::class
+        )
+            ->whereNumber('order')
+            ->name('orders.update-status');
     });
