@@ -12,13 +12,32 @@ class OrderResource extends JsonResource
         return [
             'id' => $this->id,
             'status' => $this->status,
-            'shipping_cents' => $this->shipping_cents,
             'subtotal_cents' => $this->subtotal_cents,
+            'shipping_cents' => $this->shipping_cents,
             'total_cents' => $this->total_cents,
-            'address_snapshot' => $this->address_snapshot,
-            'items' => OrderItemResource::collection(
-                $this->whenLoaded('items')
+
+            'address' => $this->address_snapshot,
+
+            'items' => $this->whenLoaded(
+                'items',
+                fn () => $this->items->map(fn ($item) => [
+                    'id' => $item->id,
+                    'product_id' => $item->product_id,
+                    'product_name' => $item->product_name,
+                    'quantity' => $item->quantity,
+                    'unit_price_cents' => $item->unit_price_cents,
+                    'line_total_cents' => $item->line_total_cents,
+                ])
             ),
+
+            'payment' => $this->whenLoaded(
+                'payment',
+                fn () => [
+                    'status' => $this->payment->status,
+                    'paid_at' => $this->payment->paid_at,
+                ]
+            ),
+
             'created_at' => $this->created_at,
         ];
     }
