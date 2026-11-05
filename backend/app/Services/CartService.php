@@ -45,27 +45,48 @@ class CartService
             $productId,
             $quantity
         ) {
-            // 1. Obtém o carrinho e bloqueia o usuário
             $cart = $this->getCart($user);
 
-            // 2. Bloqueia o produto para verificar seu estoque
+            return $this->addItemToCart(
+                $cart,
+                $productId,
+                $quantity
+            );
+        });
+    }
+    public function addItemToCart(
+        Cart $cart,
+        int $productId,
+        int $quantity
+    ): Cart {
+        return DB::transaction(function () use (
+            $cart,
+            $productId,
+            $quantity
+        ) {
+            // Bloqueia o carrinho durante a operação.
+            $cart = Cart::query()
+                ->whereKey($cart->id)
+                ->where('status', 'active')
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            // Bloqueia o produto para validar o estoque.
             $product = Product::query()
                 ->lockForUpdate()
                 ->findOrFail($productId);
 
             $this->validateProduct($product);
 
-            // 3. Procura o produto dentro do carrinho
+            // Verifica se o produto já está no carrinho.
             $item = $cart->items()
                 ->where('product_id', $product->id)
                 ->first();
 
-            // 4. Calcula a nova quantidade
             $newQuantity = ($item?->quantity ?? 0) + $quantity;
 
             $this->validateStock($product, $newQuantity);
 
-            // 5. Atualiza ou cria o item
             if ($item) {
                 $item->update([
                     'quantity' => $newQuantity,
@@ -77,11 +98,10 @@ class CartService
                 ]);
             }
 
-            // 6. Retorna o carrinho atualizado
             return $cart->fresh('items.product.category');
         });
     }
- 
+
     public function updateItem(
         User $user,
         int $itemId,
@@ -93,6 +113,29 @@ class CartService
             $quantity
         ) {
             $cart = $this->getCart($user);
+
+            return $this->updateItemInCart(
+                $cart,
+                $itemId,
+                $quantity
+            );
+        });
+    }
+    public function updateItemInCart(
+        Cart $cart,
+        int $itemId,
+        int $quantity
+    ): Cart {
+        return DB::transaction(function () use (
+            $cart,
+            $itemId,
+            $quantity
+        ) {
+            $cart = Cart::query()
+                ->whereKey($cart->id)
+                ->where('status', 'active')
+                ->lockForUpdate()
+                ->firstOrFail();
 
             $item = $cart->items()
                 ->whereKey($itemId)
@@ -122,6 +165,27 @@ class CartService
             $itemId
         ) {
             $cart = $this->getCart($user);
+
+            return $this->removeItemFromCart(
+                $cart,
+                $itemId
+            );
+        });
+    }
+
+    public function removeItemFromCart(
+        Cart $cart,
+        int $itemId
+    ): Cart {
+        return DB::transaction(function () use (
+            $cart,
+            $itemId
+        ) {
+            $cart = Cart::query()
+                ->whereKey($cart->id)
+                ->where('status', 'active')
+                ->lockForUpdate()
+                ->firstOrFail();
 
             $item = $cart->items()
                 ->whereKey($itemId)
