@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\GuestCartController;
 use App\Http\Controllers\Api\CartController;
 use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\AuthController;
@@ -31,6 +32,23 @@ Route::apiResource('categories', CategoryController::class)
 // Autenticação
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
+
+// Carrinho de visitantes
+Route::post('/guest/cart', [GuestCartController::class, 'store'])
+    ->middleware('throttle:10,1');
+
+Route::get('/guest/cart', [GuestCartController::class, 'show'])
+    ->middleware('throttle:60,1');
+    Route::post('/guest/cart/items', [GuestCartController::class, 'addItem'])
+    ->middleware('throttle:60,1');
+
+Route::patch('/guest/cart/items/{item}', [GuestCartController::class, 'updateItem'])
+    ->whereNumber('item')
+    ->middleware('throttle:60,1');
+
+Route::delete('/guest/cart/items/{item}', [GuestCartController::class, 'removeItem'])
+    ->whereNumber('item')
+    ->middleware('throttle:60,1');
 
 /*
 |--------------------------------------------------------------------------
