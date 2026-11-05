@@ -11,6 +11,14 @@ class OrderResource extends JsonResource
     {
         return [
             'id' => $this->id,
+            'user' => $this->whenLoaded(
+                'user',
+                fn () => [
+                    'id' => $this->user->id,
+                    'name' => $this->user->name,
+                    'email' => $this->user->email,
+                ]
+            ),
             'status' => $this->status,
             'subtotal_cents' => $this->subtotal_cents,
             'shipping_cents' => $this->shipping_cents,

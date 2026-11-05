@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\Api\OrderController;
+use App\Http\Controllers\Api\AdminOrderController;
 use App\Http\Controllers\Api\CheckoutController;
 use App\Http\Controllers\Api\GuestCartController;
 use App\Http\Controllers\Api\CartController;
@@ -81,7 +83,13 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::delete('/cart/items/{item}', [CartController::class, 'destroy'])
         ->whereNumber('item');
-        Route::post('/checkout', [CheckoutController::class, 'store']);
+    Route::post('/checkout', [CheckoutController::class, 'store']);
+
+        // Histórico de pedidos do usuário
+    Route::get('/orders', [OrderController::class, 'index']);
+
+    Route::get('/orders/{order}', [OrderController::class, 'show'])
+        ->whereNumber('order');
 });
 
 /*
@@ -101,4 +109,11 @@ Route::prefix('admin')
         Route::apiResource('categories', CategoryController::class)
             ->only(['store', 'update', 'destroy']);
 
+        // Consulta administrativa de pedidos
+        Route::get('/orders', [AdminOrderController::class, 'index'])
+            ->name('orders.index');
+
+        Route::get('/orders/{order}', [AdminOrderController::class, 'show'])
+            ->whereNumber('order')
+            ->name('orders.show');
     });
