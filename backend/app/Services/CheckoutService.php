@@ -164,9 +164,21 @@ class CheckoutService
                 $orderItem->line_total_cents =
                     $line['line_total_cents'];
                 $orderItem->save();
+                
+                $stockBefore = (int) $product->stock;
 
                 $product->stock -= $line['quantity'];
                 $product->save();
+
+                app(StockMovementService::class)->record(
+                    product: $product,
+                    stockBefore: $stockBefore,
+                    stockAfter: (int) $product->stock,
+                    source: 'checkout',
+                    actor: $user,
+                    order: $order
+                );
+
             }
 
             // 8. Registra um pagamento pendente.
