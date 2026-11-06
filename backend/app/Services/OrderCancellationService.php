@@ -71,8 +71,20 @@ class OrderCancellationService
                     continue;
                 }
 
+                $stockBefore = (int) $product->stock;
+
                 $product->stock += (int) $item->quantity;
                 $product->save();
+
+                app(StockMovementService::class)->record(
+                    product: $product,
+                    stockBefore: $stockBefore,
+                    stockAfter: (int) $product->stock,
+                    source: 'order_cancellation',
+                    actor: $user,
+                    order: $order
+                );
+
             }
 
             // Guarda o status anterior antes de modificá-lo.

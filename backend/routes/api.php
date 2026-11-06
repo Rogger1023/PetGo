@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\AdminStockMovementController;
 use App\Http\Controllers\Api\AddressController;
 use App\Http\Controllers\Api\OrderHistoryController;
 use App\Http\Controllers\Api\AdminOrderHistoryController;
@@ -145,6 +146,13 @@ Route::prefix('admin')
 
         Route::apiResource('products', ProductController::class)
             ->only(['store', 'update', 'destroy']);
+        
+        Route::get(
+            '/products/{product}/stock-movements',
+            AdminStockMovementController::class
+        )
+            ->whereNumber('product')
+            ->name('products.stock-movements.index');
 
         Route::apiResource('categories', CategoryController::class)
             ->only(['store', 'update', 'destroy']);
@@ -177,4 +185,5 @@ Route::prefix('admin')
         )
             ->whereNumber('order')
             ->name('orders.history');
+
     });

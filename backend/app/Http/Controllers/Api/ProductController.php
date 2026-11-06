@@ -37,7 +37,10 @@ class ProductController extends Controller
     {
         $data = $request->validated();
 
-        $product = $this->productService->createProduct($data);
+        $product = $this->productService->createProduct(
+            $data,
+            $request->user()
+        );
 
         return (new ProductResource($product))
             ->response()
@@ -52,7 +55,8 @@ class ProductController extends Controller
 
         $product = $this->productService->updateProduct(
             $product,
-            $data
+            $data,
+            $request->user()
         );
 
         return new ProductResource($product);
