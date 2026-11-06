@@ -1,13 +1,127 @@
+
 <!doctype html>
 <html lang="pt-BR">
+
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>PetGo</title>
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1">
+
+    <meta name="description"
+          content="PetGo - Produtos para cuidar do seu pet.">
+
+    <title>PetGo | Tudo para o seu pet</title>
+
+    <link rel="stylesheet" href="/css/global.css">
+    <link rel="stylesheet" href="/css/home.css">
+
+    <script type="module" src="/js/home.js"></script>
 </head>
+
 <body>
-    <h1>PetGo</h1>
-    <p>Ambiente inicial da livraria.</p>
-    <p>Frontend executando com Nginx e Docker.</p>
+
+    <header class="site-header">
+        <div class="container header-content">
+
+            <a href="/" class="logo" aria-label="PetGo - início">
+                <span aria-hidden="true">🐾</span>
+                <span>PetGo</span>
+            </a>
+
+            <nav class="main-nav" aria-label="Navegação principal">
+                <a href="#produtos">Produtos</a>
+                <a href="#sobre">Sobre nós</a>
+            </nav>
+
+        </div>
+    </header>
+
+    <main>
+
+        <section class="hero">
+            <div class="container hero-content">
+
+                <div class="hero-text">
+                    <span class="hero-label">
+                        Bem-vindo ao PetGo
+                    </span>
+
+                    <h1>
+                        Tudo para o seu
+                        <span>melhor amigo.</span>
+                    </h1>
+
+                    <p>
+                        Encontre produtos para cuidar do seu
+                        pet com carinho, praticidade e segurança.
+                    </p>
+
+                    <a href="#produtos" class="btn btn-primary">
+                        Explorar produtos
+                    </a>
+                </div>
+
+                <div class="hero-illustration" aria-hidden="true">
+                    🐶
+                </div>
+
+            </div>
+        </section>
+
+        <section id="produtos" class="products-section">
+            <div class="container">
+
+                <div class="section-heading">
+                    <div>
+                        <span class="section-label">
+                            Nosso catálogo
+                        </span>
+
+                        <h2>Produtos em destaque</h2>
+                    </div>
+
+                    <p>
+                        Escolhidos para o bem-estar do seu pet.
+                    </p>
+                </div>
+
+                <p id="products-status"
+                   class="products-status"
+                   role="status"
+                   aria-live="polite">
+                    Carregando produtos...
+                </p>
+
+                <div id="products-grid"
+                     class="products-grid">
+                </div>
+
+            </div>
+        </section>
+
+        <section id="sobre" class="about-section">
+            <div class="container about-content">
+                <h2>Cuidado em cada detalhe</h2>
+
+                <p>
+                    No PetGo, queremos tornar a experiência
+                    de comprar produtos para pets mais
+                    simples, prática e agradável.
+                </p>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="site-footer">
+        <div class="container footer-content">
+            <strong>🐾 PetGo</strong>
+
+            <p>
+                Projeto acadêmico de e-commerce.
+            </p>
+        </div>
+    </footer>
+
 </body>
 </html>
