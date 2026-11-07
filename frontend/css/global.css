@@ -487,3 +487,135 @@ img {
     }
 }
 
+.site-header .cart-item-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    min-width: 22px;
+    min-height: 22px;
+    padding: 2px 6px;
+
+    border-radius: 999px;
+
+    background: var(--color-secondary);
+    color: white;
+
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+
+.site-header .cart-item-count[hidden] {
+    display: none;
+}
+
+.site-header #cart-panel {
+    max-height: min(70vh, 430px);
+    overflow-y: auto;
+}
+
+.site-header .cart-items-list {
+    list-style: none;
+    margin: 14px 0;
+    padding: 0;
+
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.site-header .cart-summary-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.site-header .cart-summary-item strong {
+    color: var(--color-text);
+    font-size: 0.9rem;
+}
+
+.site-header .cart-summary-item span {
+    color: var(--color-text-muted);
+    font-size: 0.85rem;
+}
+
+.site-header .cart-summary-item .cart-item-price {
+    color: var(--color-primary);
+    font-weight: 700;
+}
+
+.site-header .cart-summary-total {
+    margin-top: 12px;
+    color: var(--color-primary);
+    font-weight: 800;
+}
+
+.site-header .cart-summary-total[hidden] {
+    display: none;
+}
+
+.site-header .cart-item-actions {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 8px;
+}
+
+.site-header .cart-item-quantity {
+    width: 55px;
+    min-height: 34px;
+    padding: 5px;
+
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+
+    background: var(--color-surface);
+    color: var(--color-text);
+}
+
+.site-header .cart-item-actions button {
+    min-height: 34px;
+    padding: 6px 9px;
+
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+
+    background: var(--color-background);
+    color: var(--color-primary);
+
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.site-header .cart-item-actions button:hover:not(:disabled) {
+    background: #E9DFF5;
+}
+
+.site-header .cart-item-actions button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+.site-header .cart-page-link {
+    display: block;
+    margin-top: 14px;
+    padding: 10px;
+
+    background: var(--color-primary);
+    color: white;
+
+    text-align: center;
+    font-weight: 700;
+    font-size: 0.85rem;
+
+    border-radius: var(--radius-sm);
+}
+
+.site-header .cart-page-link:hover {
+    background: #59328E;
+}

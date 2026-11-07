@@ -35,6 +35,8 @@ Route::get('/health', function () {
 Route::apiResource('products', ProductController::class)
     ->only(['index', 'show']);
 
+Route::get('/products/{product}/image',[ProductController::class, 'image']);
+
 // Categorias públicas
 Route::apiResource('categories', CategoryController::class)
     ->only(['index', 'show']);

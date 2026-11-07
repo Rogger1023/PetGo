@@ -11,7 +11,8 @@ export async function apiRequest(endpoint, options = {}) {
     const {
         method = 'GET',
         body,
-        token = null
+        token = null,
+        guestCartToken = null
     } = options;
 
     const headers = {
@@ -24,6 +25,9 @@ export async function apiRequest(endpoint, options = {}) {
 
     if (token) {
         headers.Authorization = `Bearer ${token}`;
+    }
+    if (guestCartToken) {
+        headers['X-Guest-Cart-Token'] = guestCartToken;
     }
 
     const path = endpoint.replace(/^\/+/, '');
