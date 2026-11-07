@@ -116,3 +116,7 @@ export async function removeGuestCartItem(itemId) {
     return response;
 }
 
+export function clearGuestCartToken() {
+    sessionStorage.removeItem(STORAGE_KEY);
+}
+

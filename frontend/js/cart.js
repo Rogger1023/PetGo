@@ -1,10 +1,5 @@
 import { renderLayout } from './components/layout.js';
-
-import {
-    getGuestCart,
-    updateGuestCartItem,
-    removeGuestCartItem
-} from './services/guest-cart.js';
+import { getCart,updateCartItem,removeCartItem } from './services/cart.js';
 
 renderLayout();
 
@@ -196,7 +191,7 @@ async function loadCart() {
     showStatus('Carregando carrinho...');
 
     try {
-        const response = await getGuestCart();
+        const response = await getCart();
         const cart = response?.data ?? response;
 
         renderCart(cart);
@@ -255,9 +250,9 @@ itemsList.addEventListener('click', async (event) => {
 
     try {
         if (action === 'update') {
-            await updateGuestCartItem(itemId, quantity);
+            await updateCartItem(itemId, quantity);
         } else if (action === 'remove') {
-            await removeGuestCartItem(itemId);
+            await removeCartItem(itemId);
         }
 
         await loadCart();

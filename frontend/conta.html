@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Minha Conta | PetGo</title>
+
+    <link rel="stylesheet" href="/css/global.css">
+    <link rel="stylesheet" href="/css/auth.css">
+
+    <script type="module" src="/js/auth-page.js"></script>
+</head>
+<body>
+    <header id="site-header" class="site-header"></header>
+
+    <main class="auth-page">
+        <div class="container">
+            <section class="auth-card">
+
+                <h1>Minha conta PetGo</h1>
+
+                <div id="auth-forms">
+                    <div class="auth-tabs">
+                        <button type="button" data-auth-mode="login">
+                            Entrar
+                        </button>
+
+                        <button type="button" data-auth-mode="register">
+                            Criar conta
+                        </button>
+                    </div>
+
+                    <form id="login-form" class="auth-form">
+                        <label for="login-email">E-mail</label>
+
+                        <input
+                            id="login-email"
+                            type="email"
+                            autocomplete="email"
+                            required
+                        >
+
+                        <label for="login-password">Senha</label>
+
+                        <input
+                            id="login-password"
+                            type="password"
+                            autocomplete="current-password"
+                            required
+                        >
+
+                        <button type="submit">
+                            Entrar
+                        </button>
+                    </form>
+
+                    <form id="register-form" class="auth-form" hidden>
+                        <label for="register-name">Nome</label>
+
+                        <input
+                            id="register-name"
+                            type="text"
+                            autocomplete="name"
+                            maxlength="255"
+                            required
+                        >
+
+                        <label for="register-email">E-mail</label>
+
+                        <input
+                            id="register-email"
+                            type="email"
+                            autocomplete="email"
+                            required
+                        >
+
+                        <label for="register-password">Senha</label>
+
+                        <input
+                            id="register-password"
+                            type="password"
+                            autocomplete="new-password"
+                            minlength="8"
+                            required
+                        >
+
+                        <label for="register-confirmation">
+                            Confirmar senha
+                        </label>
+
+                        <input
+                            id="register-confirmation"
+                            type="password"
+                            autocomplete="new-password"
+                            minlength="8"
+                            required
+                        >
+
+                        <button type="submit">
+                            Criar conta
+                        </button>
+                    </form>
+                </div>
+                    
+                <div id="authenticated-panel" hidden>
+
+                    <div class="account-heading">
+                        <h2>Minha conta</h2>
+
+                        <span class="account-session-status">
+                            ● Sessão iniciada
+                        </span>
+                    </div>
+
+                    <div class="account-profile">
+
+                        <div class="account-profile-field">
+                            <span>Nome</span>
+                            <strong id="authenticated-name"></strong>
+                        </div>
+
+                        <div class="account-profile-field">
+                            <span>E-mail</span>
+                            <strong id="authenticated-email"></strong>
+                        </div>
+
+                    </div>
+
+                    <div class="account-shortcuts">
+
+                        <a href="/catalogo.html" class="auth-link">
+                            Continuar comprando
+                        </a>
+
+                        <a
+                            href="/carrinho.html"
+                            class="auth-link auth-link-outline"
+                        >
+                            Meu carrinho
+                        </a>
+
+                    </div>
+
+                    <button
+                        id="logout-button"
+                        type="button"
+                        class="logout-button"
+                    >
+                        Sair da conta
+                    </button>
+
+                </div>
+                
+                <p
+                    id="auth-status"
+                    role="status"
+                    aria-live="polite"
+                ></p>
+
+            </section>
+        </div>
+    </main>
+
+    <footer id="site-footer" class="site-footer"></footer>
+</body>
+</html>

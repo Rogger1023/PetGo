@@ -1,4 +1,5 @@
-import {getGuestCart,updateGuestCartItem,removeGuestCartItem} from '../services/guest-cart.js';
+import { getCart,updateCartItem,removeCartItem } from '../services/cart.js';
+import {getAuthToken,getAuthUser} from '../services/auth.js';
 export function renderLayout({ showSearch = false } = {}) {
     const header = document.querySelector('#site-header');
     const footer = document.querySelector('#site-footer');
@@ -66,7 +67,7 @@ export function renderLayout({ showSearch = false } = {}) {
                         aria-expanded="false"
                     >
                         <span aria-hidden="true">👤</span>
-                        <span>Conta</span>
+                        <span id="header-account-label">Entrar</span>
                     </button>
 
                     <div
@@ -76,11 +77,21 @@ export function renderLayout({ showSearch = false } = {}) {
                         aria-label="Informações da conta"
                         hidden
                     >
-                        <strong>Minha conta</strong>
-                        <p>
-                            Em breve você poderá entrar,
-                            cadastrar-se e consultar seus pedidos.
+                        <strong id="account-panel-title">
+                            Acesse sua conta
+                        </strong>
+
+                        <p id="account-panel-description">
+                            Você não está conectado.
                         </p>
+
+                        <a
+                            id="account-panel-link"
+                            href="/conta.html"
+                            class="account-panel-link"
+                        >
+                            Entrar ou criar conta
+                        </a>
                     </div>
                 </div>
 
@@ -220,281 +231,358 @@ export function renderLayout({ showSearch = false } = {}) {
         }
     });
 
-const cartCount = header.querySelector('#cart-item-count');
-const cartStatus = header.querySelector('#cart-summary-status');
-const cartItemsList = header.querySelector('#cart-items-list');
-const cartTotal = header.querySelector('#cart-summary-total');
+    const cartCount = header.querySelector('#cart-item-count');
+    const cartStatus = header.querySelector('#cart-summary-status');
+    const cartItemsList = header.querySelector('#cart-items-list');
+    const cartTotal = header.querySelector('#cart-summary-total');
 
-const currencyFormatter = new Intl.NumberFormat('pt-BR', {
-    style: 'currency',
-    currency: 'BRL'
-});
+    const currencyFormatter = new Intl.NumberFormat('pt-BR', {
+        style: 'currency',
+        currency: 'BRL'
+    });
 
-let cartRequestVersion = 0;
+    let cartRequestVersion = 0;
 
-function getItemQuantity(item) {
-    const quantity = Number(item.quantity);
+    function getItemQuantity(item) {
+        const quantity = Number(item.quantity);
 
-    return Number.isSafeInteger(quantity) && quantity > 0
-        ? quantity
-        : 0;
-}
-
-
-function getItemSubtotal(item) {
-    const quantity = getItemQuantity(item);
-
-    const subtotal = item.subtotal_cents ?? item.total_cents;
-
-    if (subtotal != null) {
-        const cents = Number(subtotal);
-
-        return Number.isSafeInteger(cents) && cents >= 0
-            ? cents
-            : null;
+        return Number.isSafeInteger(quantity) && quantity > 0
+            ? quantity
+            : 0;
     }
 
-    const unitPrice = item.unit_price_cents
-        ?? item.product?.price_cents;
 
-    if (unitPrice != null) {
-        const cents = Number(unitPrice);
-
-        return Number.isSafeInteger(cents) && cents >= 0
-            ? cents * quantity
-            : null;
-    }
-
-    return null;
-}
-
-function renderCartSummary(cart) {
-    cartItemsList.replaceChildren();
-    cartTotal.hidden = true;
-
-    if (cart === null) {
-        cartCount.hidden = true;
-        cartStatus.hidden = false;
-        cartStatus.textContent = 'Seu carrinho está vazio.';
-        return;
-    }
-
-    if (!Array.isArray(cart.items)) {
-        cartCount.hidden = true;
-        cartStatus.hidden = false;
-        cartStatus.textContent =
-            'Os itens do carrinho não vieram na resposta da API.';
-        return;
-    }
-
-    const items = cart.items;
-
-    const totalQuantity = items.reduce(
-        (total, item) => total + getItemQuantity(item),
-        0
-    );
-
-    cartCount.textContent = String(totalQuantity);
-    cartCount.hidden = totalQuantity === 0;
-
-    if (items.length === 0) {
-        cartStatus.hidden = false;
-        cartStatus.textContent = 'Seu carrinho está vazio.';
-        return;
-    }
-
-    cartStatus.hidden = true;
-
-    const fragment = document.createDocumentFragment();
-
-    let cartTotalCents = 0;
-    let allPricesAvailable = true;
-
-    items.forEach((item) => {
+    function getItemSubtotal(item) {
         const quantity = getItemQuantity(item);
 
-        const productName =
-            item.product?.name ??
-            item.product_name ??
-            `Produto #${item.product_id ?? item.id}`;
+        const subtotal = item.subtotal_cents ?? item.total_cents;
 
-        const subtotal = getItemSubtotal(item);
+        if (subtotal != null) {
+            const cents = Number(subtotal);
 
-        const listItem = document.createElement('li');
-        listItem.className = 'cart-summary-item';
-
-        const nameElement = document.createElement('strong');
-        nameElement.textContent = productName;
-
-        const quantityElement = document.createElement('span');
-        quantityElement.textContent = `${quantity} unidade(s)`;
-
-        listItem.append(nameElement, quantityElement);
-
-        if (subtotal !== null) {
-            const priceElement = document.createElement('span');
-
-            priceElement.className = 'cart-item-price';
-            priceElement.textContent =
-                currencyFormatter.format(subtotal / 100);
-
-            listItem.appendChild(priceElement);
-            cartTotalCents += subtotal;
-        } else {
-            allPricesAvailable = false;
+            return Number.isSafeInteger(cents) && cents >= 0
+                ? cents
+                : null;
         }
-        
-        const actions = document.createElement('div');
-        actions.className = 'cart-item-actions';
 
-        const quantityInput = document.createElement('input');
-        quantityInput.type = 'number';
-        quantityInput.className = 'cart-item-quantity';
-        quantityInput.min = '1';
-        quantityInput.step = '1';
-        quantityInput.value = String(quantity);
-        quantityInput.setAttribute(
-            'aria-label',
-            `Quantidade de ${productName}`
-        );
+        const unitPrice = item.unit_price_cents
+            ?? item.product?.price_cents;
 
-        const updateButton = document.createElement('button');
-        updateButton.type = 'button';
-        updateButton.textContent = 'Atualizar';
-        updateButton.dataset.action = 'update';
-        updateButton.dataset.itemId = String(item.id);
+        if (unitPrice != null) {
+            const cents = Number(unitPrice);
 
-        const removeButton = document.createElement('button');
-        removeButton.type = 'button';
-        removeButton.textContent = 'Remover';
-        removeButton.dataset.action = 'remove';
-        removeButton.dataset.itemId = String(item.id);
+            return Number.isSafeInteger(cents) && cents >= 0
+                ? cents * quantity
+                : null;
+        }
 
-        actions.append(
-            quantityInput,
-            updateButton,
-            removeButton
-        );
-
-        listItem.appendChild(actions);
-        
-        fragment.appendChild(listItem);
-    });
-
-    cartItemsList.appendChild(fragment);
-
-    if (allPricesAvailable) {
-        cartTotal.textContent =
-            `Subtotal: ${currencyFormatter.format(cartTotalCents / 100)}`;
-
-        cartTotal.hidden = false;
+        return null;
     }
-}
 
-async function loadCartSummary() {
-    const requestVersion = ++cartRequestVersion;
-
-    cartStatus.hidden = false;
-    cartStatus.textContent = 'Carregando carrinho...';
-
-    try {
-        const response = await getGuestCart();
-
-        if (requestVersion !== cartRequestVersion) {
-            return;
-        }
-
-        const cart = response?.data ?? response;
-
-        renderCartSummary(cart);
-
-    } catch (error) {
-        if (requestVersion !== cartRequestVersion) {
-            return;
-        }
-
-        console.error('Erro ao consultar carrinho:', error);
-
+    function renderCartSummary(cart) {
         cartItemsList.replaceChildren();
-        cartCount.hidden = true;
         cartTotal.hidden = true;
 
-        cartStatus.hidden = false;
-        cartStatus.textContent =
-            'Não foi possível consultar o carrinho.';
-    }
-}
-
-
-cartItemsList.addEventListener('click', async (event) => {
-    const button = event.target.closest('button[data-action]');
-
-    if (!button || button.disabled) {
-        return;
-    }
-
-    const itemId = Number(button.dataset.itemId);
-    const action = button.dataset.action;
-
-    if (!Number.isSafeInteger(itemId) || itemId < 1) {
-        return;
-    }
-
-    const itemElement = button.closest('.cart-summary-item');
-    const quantityInput = itemElement.querySelector(
-        '.cart-item-quantity'
-    );
-
-    const quantity = Number(quantityInput.value);
-
-    if (
-        action === 'update' &&
-        (
-            !Number.isSafeInteger(quantity) ||
-            quantity < 1
-        )
-    ) {
-        cartStatus.hidden = false;
-        cartStatus.textContent = 'Informe uma quantidade válida.';
-        return;
-    }
-
-    const buttons = cartItemsList.querySelectorAll('button');
-
-    buttons.forEach((itemButton) => {
-        itemButton.disabled = true;
-    });
-
-    cartStatus.hidden = false;
-    cartStatus.textContent = 'Atualizando carrinho...';
-
-    try {
-        if (action === 'update') {
-            await updateGuestCartItem(itemId, quantity);
-        } else if (action === 'remove') {
-            await removeGuestCartItem(itemId);
+        if (cart === null) {
+            cartCount.hidden = true;
+            cartStatus.hidden = false;
+            cartStatus.textContent = 'Seu carrinho está vazio.';
+            return;
         }
 
-    } catch (error) {
-        console.error('Erro ao atualizar carrinho:', error);
+        if (!Array.isArray(cart.items)) {
+            cartCount.hidden = true;
+            cartStatus.hidden = false;
+            cartStatus.textContent =
+                'Os itens do carrinho não vieram na resposta da API.';
+            return;
+        }
+
+        const items = cart.items;
+
+        const totalQuantity = items.reduce(
+            (total, item) => total + getItemQuantity(item),
+            0
+        );
+
+        cartCount.textContent = String(totalQuantity);
+        cartCount.hidden = totalQuantity === 0;
+
+        if (items.length === 0) {
+            cartStatus.hidden = false;
+            cartStatus.textContent = 'Seu carrinho está vazio.';
+            return;
+        }
+
+        cartStatus.hidden = true;
+
+        const fragment = document.createDocumentFragment();
+
+        let cartTotalCents = 0;
+        let allPricesAvailable = true;
+
+        items.forEach((item) => {
+            const quantity = getItemQuantity(item);
+
+            const productName =
+                item.product?.name ??
+                item.product_name ??
+                `Produto #${item.product_id ?? item.id}`;
+
+            const subtotal = getItemSubtotal(item);
+
+            const listItem = document.createElement('li');
+            listItem.className = 'cart-summary-item';
+
+            const nameElement = document.createElement('strong');
+            nameElement.textContent = productName;
+
+            const quantityElement = document.createElement('span');
+            quantityElement.textContent = `${quantity} unidade(s)`;
+
+            listItem.append(nameElement, quantityElement);
+
+            if (subtotal !== null) {
+                const priceElement = document.createElement('span');
+
+                priceElement.className = 'cart-item-price';
+                priceElement.textContent =
+                    currencyFormatter.format(subtotal / 100);
+
+                listItem.appendChild(priceElement);
+                cartTotalCents += subtotal;
+            } else {
+                allPricesAvailable = false;
+            }
+            
+            const actions = document.createElement('div');
+            actions.className = 'cart-item-actions';
+
+            const quantityInput = document.createElement('input');
+            quantityInput.type = 'number';
+            quantityInput.className = 'cart-item-quantity';
+            quantityInput.min = '1';
+            quantityInput.step = '1';
+            quantityInput.value = String(quantity);
+            quantityInput.setAttribute(
+                'aria-label',
+                `Quantidade de ${productName}`
+            );
+
+            const updateButton = document.createElement('button');
+            updateButton.type = 'button';
+            updateButton.textContent = 'Atualizar';
+            updateButton.dataset.action = 'update';
+            updateButton.dataset.itemId = String(item.id);
+
+            const removeButton = document.createElement('button');
+            removeButton.type = 'button';
+            removeButton.textContent = 'Remover';
+            removeButton.dataset.action = 'remove';
+            removeButton.dataset.itemId = String(item.id);
+
+            actions.append(
+                quantityInput,
+                updateButton,
+                removeButton
+            );
+
+            listItem.appendChild(actions);
+            
+            fragment.appendChild(listItem);
+        });
+
+        cartItemsList.appendChild(fragment);
+
+        if (allPricesAvailable) {
+            cartTotal.textContent =
+                `Subtotal: ${currencyFormatter.format(cartTotalCents / 100)}`;
+
+            cartTotal.hidden = false;
+        }
+    }
+
+    async function loadCartSummary() {
+        const requestVersion = ++cartRequestVersion;
 
         cartStatus.hidden = false;
-        cartStatus.textContent =
-            error.message || 'Não foi possível atualizar o carrinho.';
+        cartStatus.textContent = 'Carregando carrinho...';
 
-    } finally {
-        buttons.forEach((itemButton) => {
-            itemButton.disabled = false;
-        });
+        try {
+            const response = await getCart();
+
+            if (requestVersion !== cartRequestVersion) {
+                return;
+            }
+
+            const cart = response?.data ?? response;
+
+            renderCartSummary(cart);
+
+        } catch (error) {
+            if (requestVersion !== cartRequestVersion) {
+                return;
+            }
+
+            console.error('Erro ao consultar carrinho:', error);
+
+            cartItemsList.replaceChildren();
+            cartCount.hidden = true;
+            cartTotal.hidden = true;
+
+            cartStatus.hidden = false;
+            cartStatus.textContent =
+                'Não foi possível consultar o carrinho.';
+        }
     }
-});
 
 
-window.addEventListener('petgo:cart-updated', () => {
+    cartItemsList.addEventListener('click', async (event) => {
+        const button = event.target.closest('button[data-action]');
+
+        if (!button || button.disabled) {
+            return;
+        }
+
+        const itemId = Number(button.dataset.itemId);
+        const action = button.dataset.action;
+
+        if (!Number.isSafeInteger(itemId) || itemId < 1) {
+            return;
+        }
+
+        const itemElement = button.closest('.cart-summary-item');
+        const quantityInput = itemElement.querySelector(
+            '.cart-item-quantity'
+        );
+
+        const quantity = Number(quantityInput.value);
+
+        if (
+            action === 'update' &&
+            (
+                !Number.isSafeInteger(quantity) ||
+                quantity < 1
+            )
+        ) {
+            cartStatus.hidden = false;
+            cartStatus.textContent = 'Informe uma quantidade válida.';
+            return;
+        }
+
+        const buttons = cartItemsList.querySelectorAll('button');
+
+        buttons.forEach((itemButton) => {
+            itemButton.disabled = true;
+        });
+
+        cartStatus.hidden = false;
+        cartStatus.textContent = 'Atualizando carrinho...';
+
+        try {
+            if (action === 'update') {
+                await updateCartItem(itemId, quantity);
+            } else if (action === 'remove') {
+                await removeCartItem(itemId);
+            }
+
+        } catch (error) {
+            console.error('Erro ao atualizar carrinho:', error);
+
+            cartStatus.hidden = false;
+            cartStatus.textContent =
+                error.message || 'Não foi possível atualizar o carrinho.';
+
+        } finally {
+            buttons.forEach((itemButton) => {
+                itemButton.disabled = false;
+            });
+        }
+    });
+
+
+    window.addEventListener('petgo:cart-updated', () => {
+        loadCartSummary();
+    });
+
+    window.addEventListener('petgo:auth-changed', () => {
+        loadCartSummary();
+    });
+
     loadCartSummary();
-});
+    
+    function updateAccountHeader() {
+        const token = getAuthToken();
+        const user = getAuthUser();
 
-loadCartSummary();
+        const isAuthenticated = Boolean(token);
+
+        const accountButton = header.querySelector(
+            '[aria-controls="account-panel"]'
+        );
+
+        const accountLabel = header.querySelector(
+            '#header-account-label'
+        );
+
+        const panelTitle = header.querySelector(
+            '#account-panel-title'
+        );
+
+        const panelDescription = header.querySelector(
+            '#account-panel-description'
+        );
+
+        const accountLink = header.querySelector(
+            '#account-panel-link'
+        );
+
+        if (!isAuthenticated) {
+            accountLabel.textContent = 'Entrar';
+
+            accountButton.setAttribute(
+                'aria-label',
+                'Entrar ou criar conta'
+            );
+
+            panelTitle.textContent = 'Acesse sua conta';
+
+            panelDescription.textContent =
+                'Você não está conectado. Entre para acessar sua conta.';
+
+            accountLink.textContent = 'Entrar ou criar conta';
+
+            return;
+        }
+
+        const fullName =
+            typeof user?.name === 'string'
+                ? user.name.trim()
+                : '';
+
+        const firstName = fullName.split(/\s+/)[0] || 'cliente';
+
+        accountLabel.textContent = `Olá, ${firstName}`;
+
+        accountButton.setAttribute(
+            'aria-label',
+            `Conta de ${firstName}. Abrir opções da conta.`
+        );
+
+        panelTitle.textContent = 'Sessão iniciada';
+
+        panelDescription.textContent =
+            `Conectado como ${fullName || user?.email || 'Cliente PetGo'}.`;
+
+        accountLink.textContent = 'Ver minha conta';
+    }
+
+    window.addEventListener(
+        'petgo:auth-changed',
+        updateAccountHeader
+    );
+
+    updateAccountHeader();
 
 
 }
