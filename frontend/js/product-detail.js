@@ -1,7 +1,7 @@
 import { apiRequest } from './api.js';
 import { renderLayout } from './components/layout.js';
 import { renderProductImage } from './components/product-image.js';
-import { addGuestCartItem } from './services/guest-cart.js';
+import { addCartItem } from './services/cart.js';
 
 renderLayout();
 
@@ -176,7 +176,7 @@ cartForm.addEventListener('submit', async (event) => {
     addButton.textContent = 'Adicionando...';
 
     try {
-        await addGuestCartItem(currentProduct.id, quantity);
+        await addCartItem(currentProduct.id, quantity);
 
         cartFeedback.textContent =
             'Produto adicionado ao carrinho com sucesso!';

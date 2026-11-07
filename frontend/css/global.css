@@ -619,3 +619,20 @@ img {
 .site-header .cart-page-link:hover {
     background: #59328E;
 }
+.site-header .account-panel-link {
+    display: block;
+    margin-top: 14px;
+    padding: 10px;
+
+    background: var(--color-primary);
+    color: white;
+
+    border-radius: var(--radius-sm);
+    text-align: center;
+    font-weight: 700;
+    font-size: 0.85rem;
+}
+
+.site-header .account-panel-link:hover {
+    background: #59328E;
+}
