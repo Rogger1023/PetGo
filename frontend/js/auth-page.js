@@ -1,8 +1,17 @@
 
 import { renderLayout } from './components/layout.js';
 
-import { getAuthToken,getAuthUser,login,register,logout } from './services/auth.js';
-import { transferGuestCartToAccount } from './services/cart.js';
+import {
+    getAuthToken,
+    getAuthUser,
+    login,
+    register,
+    logout
+} from './services/auth.js';
+
+import {
+    transferGuestCartToAccount
+} from './services/cart.js';
 
 renderLayout();
 
@@ -63,6 +72,59 @@ function renderSession() {
 
         authenticatedEmail.textContent =
             user?.email || 'E-mail não informado';
+    } else {
+        authenticatedName.textContent = '';
+        authenticatedEmail.textContent = '';
+    }
+}
+
+function redirectToCheckoutIfRequested() {
+    const params = new URLSearchParams(window.location.search);
+    const next = params.get('next');
+
+    if (next === '/checkout.html') {
+        window.location.assign('/checkout.html');
+    }
+}
+
+async function transferCartAfterAuthentication() {
+    try {
+        const result = await transferGuestCartToAccount();
+
+        if (result.failed.length > 0) {
+            console.warn('Itens não transferidos:', result.failed);
+
+            return {
+                message:
+                    `${result.failed.length} item(ns) não foram transferidos. ` +
+                    'Eles permanecem no carrinho de visitante.',
+                canRedirect: false
+            };
+        }
+
+        if (result.transferred > 0) {
+            return {
+                message:
+                    `${result.transferred} item(ns) transferido(s) ` +
+                    'para sua conta com sucesso!',
+                canRedirect: true
+            };
+        }
+
+        return {
+            message: 'Seu carrinho está pronto.',
+            canRedirect: true
+        };
+
+    } catch (error) {
+        console.error('Erro na transferência:', error);
+
+        return {
+            message:
+                'Autenticação realizada, mas não foi possível verificar ' +
+                'a transferência do carrinho.',
+            canRedirect: false
+        };
     }
 }
 
@@ -72,42 +134,6 @@ document.querySelectorAll('[data-auth-mode]').forEach((button) => {
         showMessage('');
     });
 });
-
-
-async function transferCartAfterAuthentication() {
-    try {
-        const result = await transferGuestCartToAccount();
-
-        if (result.failed.length > 0) {
-            console.warn(
-                'Itens não transferidos:',
-                result.failed
-            );
-
-            return (
-                `${result.failed.length} item(ns) não foram transferidos. ` +
-                'Eles permanecem no carrinho de visitante.'
-            );
-        }
-
-        if (result.transferred > 0) {
-            return (
-                `${result.transferred} item(ns) transferido(s) ` +
-                'para sua conta com sucesso!'
-            );
-        }
-
-        return 'Seu carrinho está pronto.';
-
-    } catch (error) {
-        console.error('Erro na transferência:', error);
-
-        return (
-            'Login realizado, mas não foi possível verificar ' +
-            'a transferência do carrinho.'
-        );
-    }
-}
 
 loginForm.addEventListener('submit', async (event) => {
     event.preventDefault();
@@ -122,13 +148,18 @@ loginForm.addEventListener('submit', async (event) => {
     try {
         await login(email, password);
 
-        const cartMessage = await transferCartAfterAuthentication();
+        const cartResult = await transferCartAfterAuthentication();
 
         loginForm.reset();
-
         renderSession();
 
-        showMessage(`Login realizado com sucesso! ${cartMessage}`);
+        showMessage(
+            `Login realizado com sucesso! ${cartResult.message}`
+        );
+
+        if (cartResult.canRedirect) {
+            redirectToCheckoutIfRequested();
+        }
 
     } catch (error) {
         showMessage(getErrorMessage(error), true);
@@ -144,6 +175,7 @@ registerForm.addEventListener('submit', async (event) => {
     const name = document.querySelector('#register-name').value.trim();
     const email = document.querySelector('#register-email').value.trim();
     const password = document.querySelector('#register-password').value;
+
     const passwordConfirmation = document.querySelector(
         '#register-confirmation'
     ).value;
@@ -169,16 +201,26 @@ registerForm.addEventListener('submit', async (event) => {
         registerForm.reset();
 
         if (result.authenticated) {
-            const cartMessage = await transferCartAfterAuthentication();
+            const cartResult = await transferCartAfterAuthentication();
 
             renderSession();
 
-            showMessage(`Conta criada com sucesso! ${cartMessage}`);
+            showMessage(
+                `Conta criada com sucesso! ${cartResult.message}`
+            );
+
+            if (cartResult.canRedirect) {
+                redirectToCheckoutIfRequested();
+            }
+
         } else {
             showMode('login');
+
             document.querySelector('#login-email').value = email;
 
-            showMessage('Conta criada! Faça login para continuar.');
+            showMessage(
+                'Conta criada com sucesso! Faça login para continuar.'
+            );
         }
 
     } catch (error) {
@@ -202,15 +244,21 @@ logoutButton.addEventListener('click', async () => {
             warning || 'Você saiu da sua conta.'
         );
 
+    } catch (error) {
+        showMessage(getErrorMessage(error), true);
+
     } finally {
         logoutButton.disabled = false;
     }
 });
 
-showMode(
-    new URLSearchParams(location.search).get('mode') === 'register'
-        ? 'register'
-        : 'login'
-);
+const initialMode = new URLSearchParams(window.location.search)
+    .get('mode');
+
+showMode(initialMode === 'register' ? 'register' : 'login');
 
 renderSession();
+
+if (getAuthToken()) {
+    redirectToCheckoutIfRequested();
+}
