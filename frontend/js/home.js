@@ -1,6 +1,6 @@
 
 import { apiRequest } from './api.js';
-import { createProductCard } from './components/product-card.js';
+import { createLinkedProductCard } from './components/product-card.js';
 import { renderLayout } from './components/layout.js';
 
 renderLayout({ showSearch: true });
@@ -29,7 +29,7 @@ function renderProducts(products) {
     const fragment = document.createDocumentFragment();
 
     products.forEach((product) => {
-        const card = createProductCard(product);
+        const card = createLinkedProductCard(product)
         fragment.appendChild(card);
     });
 

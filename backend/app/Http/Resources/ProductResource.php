@@ -15,7 +15,11 @@ class ProductResource extends JsonResource
             'slug' => $this->slug,
             'description' => $this->description,
             'image_path' => $this->image_path,
+            'image_url' => $this->image_path
+                ? "/api/products/{$this->id}/image"
+                : null,
             'price_cents' => $this->price_cents,
+            'stock' => (int) $this->stock,
             'in_stock' => $this->stock > 0,
             'category' => new CategoryResource(
                 $this->whenLoaded('category')

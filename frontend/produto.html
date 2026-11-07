@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Detalhes do Produto | PetGo</title>
+
+    <link rel="stylesheet" href="/css/global.css">
+    <link rel="stylesheet" href="/css/product-detail.css">
+
+    <script type="module" src="/js/product-detail.js"></script>
+</head>
+<body>
+
+    <header id="site-header" class="site-header"></header>
+
+    <main class="product-detail-section">
+        <div class="container">
+
+            <a href="/catalogo.html" class="product-back-link">
+                ← Voltar ao catálogo
+            </a>
+
+            <p
+                id="product-detail-status"
+                role="status"
+                aria-live="polite"
+            >
+                Carregando produto...
+            </p>
+
+            <article
+                id="product-detail"
+                class="product-detail-layout"
+                hidden
+            >
+                <div class="product-detail-image" aria-hidden="true">
+                    🐾
+                </div>
+
+                <div class="product-detail-info">
+                    <p id="detail-category" class="detail-category"></p>
+
+                    <h1 id="detail-name"></h1>
+
+                    <p id="detail-price" class="detail-price"></p>
+
+                    <p id="detail-stock" class="detail-stock"></p>
+                      
+                    <form
+                        id="add-to-cart-form"
+                        class="add-to-cart-form"
+                        hidden
+                    >
+                        <label for="product-quantity">
+                            Quantidade
+                        </label>
+
+                        <input
+                            type="number"
+                            id="product-quantity"
+                            name="quantity"
+                            min="1"
+                            step="1"
+                            value="1"
+                            required
+                        >
+
+                        <button
+                            type="submit"
+                            id="add-to-cart-button"
+                            class="add-to-cart-button"
+                        >
+                            Adicionar ao carrinho
+                        </button>
+                    </form>
+
+                    <p
+                        id="cart-feedback"
+                        class="cart-feedback"
+                        role="status"
+                        aria-live="polite"
+                    ></p>
+
+
+                    <h2>Sobre o produto</h2>
+
+                    <p id="detail-description"></p>
+                </div>
+            </article>
+
+        </div>
+    </main>
+
+    <footer id="site-footer" class="site-footer"></footer>
+
+</body>
+</html>
