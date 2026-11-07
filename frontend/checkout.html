@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Finalizar compra | PetGo</title>
+
+    <link rel="stylesheet" href="/css/global.css">
+    <link rel="stylesheet" href="/css/checkout-orders.css">
+    <script type="module" src="/js/checkout.js"></script>
+</head>
+<body>
+    <header id="site-header" class="site-header"></header>
+
+    <main class="checkout-page">
+        <div class="checkout-container">
+
+            <h1>Finalizar compra</h1>
+            <p>Confira seus produtos antes de confirmar o pedido.</p>
+
+            <div class="checkout-grid">
+
+                <section class="checkout-card">
+                    <h2>Seus produtos</h2>
+
+                    <div id="checkout-items">
+                        Carregando carrinho...
+                    </div>
+
+                    <a href="/carrinho.html">
+                        Voltar ao carrinho
+                    </a>
+                </section>
+
+                <section class="checkout-card">
+                    <h2>Entrega e resumo</h2>
+
+                    <button
+                        type="button"
+                        id="toggle-address-form"
+                        class="address-toggle"
+                        aria-expanded="false"
+                        aria-controls="address-form"
+                    >
+                        + Cadastrar novo endereço
+                    </button>
+
+                    <form id="address-form" class="address-form" hidden>
+                        <h3>Novo endereço</h3>
+
+                        <div class="address-form-grid">
+                            <label class="address-field address-field-full">
+                                Nome do destinatário
+                                <input
+                                    type="text"
+                                    name="recipient_name"
+                                    autocomplete="name"
+                                    maxlength="120"
+                                    required
+                                >
+                            </label>
+
+                            <label class="address-field">
+                                Telefone
+                                <input
+                                    type="tel"
+                                    name="phone"
+                                    autocomplete="tel"
+                                    minlength="8"
+                                    maxlength="20"
+                                    required
+                                >
+                            </label>
+
+                            <label class="address-field">
+                                CEP
+                                <input
+                                    type="text"
+                                    name="postal_code"
+                                    autocomplete="postal-code"
+                                    inputmode="numeric"
+                                    placeholder="85000-000"
+                                    pattern="[0-9]{5}-?[0-9]{3}"
+                                    maxlength="9"
+                                    required
+                                >
+                            </label>
+
+                            <label class="address-field address-field-full">
+                                Rua
+                                <input
+                                    type="text"
+                                    name="street"
+                                    autocomplete="address-line1"
+                                    maxlength="180"
+                                    required
+                                >
+                            </label>
+
+                            <label class="address-field">
+                                Número
+                                <input
+                                    type="text"
+                                    name="number"
+                                    maxlength="20"
+                                    required
+                                >
+                            </label>
+
+                            <label class="address-field">
+                                Complemento
+                                <input
+                                    type="text"
+                                    name="complement"
+                                    maxlength="120"
+                                >
+                            </label>
+
+                            <label class="address-field address-field-full">
+                                Bairro
+                                <input
+                                    type="text"
+                                    name="neighborhood"
+                                    maxlength="100"
+                                    required
+                                >
+                            </label>
+
+                            <label class="address-field">
+                                Cidade
+                                <input
+                                    type="text"
+                                    name="city"
+                                    autocomplete="address-level2"
+                                    maxlength="100"
+                                    required
+                                >
+                            </label>
+
+                            <label class="address-field">
+                                Estado (UF)
+                                <input
+                                    type="text"
+                                    name="state"
+                                    autocomplete="address-level1"
+                                    placeholder="PR"
+                                    maxlength="2"
+                                    pattern="[A-Za-z]{2}"
+                                    required
+                                >
+                            </label>
+
+                            <label class="address-field address-field-full">
+                                Ponto de referência
+                                <input
+                                    type="text"
+                                    name="reference"
+                                    maxlength="255"
+                                >
+                            </label>
+                        </div>
+
+                        <label class="address-default">
+                            <input
+                                type="checkbox"
+                                name="is_default"
+                                checked
+                            >
+                            Definir como endereço principal
+                        </label>
+
+                        <button
+                            type="submit"
+                            id="save-address-button"
+                            class="save-address-button"
+                        >
+                            Salvar endereço
+                        </button>
+                    </form>
+
+                    <form id="checkout-form">
+                        <label for="checkout-address">
+                            Endereço de entrega
+                        </label>
+
+                        <select
+                            id="checkout-address"
+                            required
+                            disabled
+                        >
+                            <option value="">
+                                Carregando endereços...
+                            </option>
+                        </select>
+
+                        <p
+                            id="address-status"
+                            class="checkout-help"
+                        ></p>
+
+                        <div class="checkout-total-row">
+                            <span>Subtotal estimado</span>
+
+                            <strong id="checkout-subtotal">
+                                R$ 0,00
+                            </strong>
+                        </div>
+
+                        <p class="checkout-help">
+                            O Laravel confirmará o valor final,
+                            incluindo eventuais custos de entrega.
+                        </p>
+
+                        <button
+                            type="submit"
+                            id="confirm-order-button"
+                            disabled
+                        >
+                            Confirmar pedido
+                        </button>
+                    </form>
+                </section>
+
+            </div>
+
+            <p
+                id="checkout-status"
+                role="status"
+                aria-live="polite"
+            ></p>
+
+        </div>
+    </main>
+
+    <footer id="site-footer" class="site-footer"></footer>
+</body>
+</html>
