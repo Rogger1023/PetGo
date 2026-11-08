@@ -50,6 +50,33 @@ class ProductController extends Controller
 
         return ProductResource::collection($products);
     }
+    
+    public function adminIndex(Request $request): AnonymousResourceCollection
+    {
+        abort_unless($request->user()?->isAdmin(), 403);
+
+        $filters = $request->validate([
+            'search' => ['nullable', 'string', 'max:100'],
+            'status' => ['nullable', 'in:all,active,inactive'],
+        ]);
+
+        $search = trim($filters['search'] ?? '');
+        $status = $filters['status'] ?? 'all';
+
+        $products = Product::query()
+            ->with('category')
+            ->when($search !== '', function ($query) use ($search) {
+                $query->where('name', 'like', '%' . $search . '%');
+            })
+            ->when($status !== 'all', function ($query) use ($status) {
+                $query->where('is_active', $status === 'active');
+            })
+            ->orderByDesc('id')
+            ->paginate(15);
+
+        return ProductResource::collection($products);
+    }
+
 
     public function show(Product $product): ProductResource
     {

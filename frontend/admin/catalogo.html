@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Gerenciar Catálogo | PetGo Admin</title>
+
+    <link rel="stylesheet" href="/css/global.css">
+    <link rel="stylesheet" href="/admin/admin.css">
+    <link rel="stylesheet" href="/admin/catalogo.css">
+
+    <script type="module" src="/admin/catalogo.js"></script>
+</head>
+<body>
+    <header class="admin-header">
+        <a href="/admin/" class="admin-brand">
+            🐾 PetGo Admin
+        </a>
+
+        <nav aria-label="Navegação administrativa">
+            <a href="/admin/">Pedidos</a>
+            <a href="/admin/catalogo.html">Catálogo</a>
+            <a href="/">Ver loja</a>
+        </nav>
+    </header>
+
+    <main class="admin-container">
+        <div class="admin-heading">
+            <h1>Gerenciar catálogo</h1>
+            <p>Produtos, preços, estoque e categorias.</p>
+        </div>
+
+        <p id="catalog-status" role="status" aria-live="polite">
+            Verificando acesso...
+        </p>
+
+        <div id="catalog-content" hidden>
+
+            <section class="admin-card">
+                <div class="catalog-toolbar">
+                    <h2>Produtos</h2>
+
+                    <button
+                        type="button"
+                        id="new-product"
+                        class="admin-action"
+                    >
+                        + Novo produto
+                    </button>
+                </div>
+
+                <form id="product-filters" class="catalog-filters">
+                    <input
+                        type="search"
+                        id="product-search"
+                        placeholder="Buscar produto pelo nome"
+                        maxlength="100"
+                    >
+
+                    <select id="product-status">
+                        <option value="all">Todos</option>
+                        <option value="active">Ativos</option>
+                        <option value="inactive">Inativos</option>
+                    </select>
+
+                    <button type="submit" class="admin-action">
+                        Buscar
+                    </button>
+                </form>
+            </section>
+
+            <section id="product-editor" class="admin-card" hidden>
+                <h2 id="product-editor-title">Novo produto</h2>
+
+                <form id="product-form" class="catalog-form">
+                    <div class="catalog-fields">
+
+                        <label>
+                            Nome
+                            <input
+                                name="name"
+                                type="text"
+                                maxlength="180"
+                                required
+                            >
+                        </label>
+
+                        <label>
+                            Slug
+                            <input
+                                name="slug"
+                                type="text"
+                                maxlength="220"
+                                pattern="[a-z0-9_-]+"
+                                required
+                            >
+                        </label>
+
+                        <label>
+                            Categoria
+                            <select name="category_id" required></select>
+                        </label>
+
+                        <label>
+                            Preço (R$)
+                            <input
+                                name="price_reais"
+                                type="text"
+                                inputmode="decimal"
+                                placeholder="89,90"
+                                required
+                            >
+                        </label>
+
+                        <label>
+                            Estoque
+                            <input
+                                name="stock"
+                                type="number"
+                                min="0"
+                                step="1"
+                                required
+                            >
+                        </label>
+
+                        <label class="catalog-checkbox">
+                            <input
+                                name="is_active"
+                                type="checkbox"
+                                checked
+                            >
+                            Produto ativo
+                        </label>
+
+                        <label class="catalog-full">
+                            Descrição
+                            <textarea
+                                name="description"
+                                rows="4"
+                            ></textarea>
+                        </label>
+                    </div>
+
+                    <div class="catalog-buttons">
+                        <button type="submit" class="admin-action">
+                            Salvar produto
+                        </button>
+
+                        <button
+                            type="button"
+                            id="cancel-product"
+                            class="catalog-secondary"
+                        >
+                            Cancelar
+                        </button>
+                    </div>
+                </form>
+            </section>
+
+            <section class="admin-card">
+                <div class="admin-table-wrapper">
+                    <table class="admin-table">
+                        <thead>
+                            <tr>
+                                <th>Produto</th>
+                                <th>Categoria</th>
+                                <th>Preço</th>
+                                <th>Estoque</th>
+                                <th>Status</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+
+                        <tbody id="products-body"></tbody>
+                    </table>
+                </div>
+
+                <div id="product-pages" class="catalog-pages"></div>
+            </section>
+
+            <section class="admin-card">
+                <div class="catalog-toolbar">
+                    <h2>Categorias</h2>
+
+                    <button
+                        type="button"
+                        id="new-category"
+                        class="admin-action"
+                    >
+                        + Nova categoria
+                    </button>
+                </div>
+
+                <div id="category-editor" hidden>
+                    <form id="category-form" class="catalog-form">
+                        <div class="catalog-fields">
+
+                            <label>
+                                Nome
+                                <input
+                                    name="name"
+                                    type="text"
+                                    maxlength="120"
+                                    required
+                                >
+                            </label>
+
+                            <label>
+                                Slug
+                                <input
+                                    name="slug"
+                                    type="text"
+                                    maxlength="140"
+                                    pattern="[a-z0-9_-]+"
+                                    required
+                                >
+                            </label>
+
+                            <label class="catalog-full">
+                                Descrição
+                                <textarea
+                                    name="description"
+                                    rows="3"
+                                ></textarea>
+                            </label>
+                        </div>
+
+                        <div class="catalog-buttons">
+                            <button type="submit" class="admin-action">
+                                Salvar categoria
+                            </button>
+
+                            <button
+                                type="button"
+                                id="cancel-category"
+                                class="catalog-secondary"
+                            >
+                                Cancelar
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="admin-table-wrapper">
+                    <table class="admin-table">
+                        <thead>
+                            <tr>
+                                <th>Nome</th>
+                                <th>Slug</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+
+                        <tbody id="categories-body"></tbody>
+                    </table>
+                </div>
+            </section>
+
+        </div>
+    </main>
+</body>
+</html>

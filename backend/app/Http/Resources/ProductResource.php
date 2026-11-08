@@ -24,6 +24,8 @@ class ProductResource extends JsonResource
             'category' => new CategoryResource(
                 $this->whenLoaded('category')
             ),
+            'category_id' => $this->category_id,
+            'is_active' => (bool) $this->is_active,
         ];
     }
 }

@@ -189,3 +189,11 @@ Route::prefix('admin')
             ->name('orders.history');
 
     });
+
+Route::get(
+    'admin/products',
+    [\App\Http\Controllers\Api\ProductController::class, 'adminIndex']
+)->middleware([
+    'auth:sanctum',
+    \App\Http\Middleware\EnsureUserIsAdmin::class,
+]);
