@@ -53,7 +53,7 @@ export function renderLayout({ showSearch = false } = {}) {
                 aria-label="Navegação principal"
             >
                 <a href="/catalogo.html">Produtos</a>
-                <a href="/#sobre">Sobre nós</a>
+                <a href="/sobre.html">Sobre nós</a>
             </nav>
             
             <div class="header-actions">
@@ -91,6 +91,14 @@ export function renderLayout({ showSearch = false } = {}) {
                             class="account-panel-link"
                         >
                             Entrar ou criar conta
+                        </a>
+                        <a
+                            href="/admin/"
+                            id="account-admin-link"
+                            class="account-panel-admin-link"
+                            hidden
+                        >
+                            Painel administrativo
                         </a>
                     </div>
                 </div>
@@ -536,6 +544,15 @@ export function renderLayout({ showSearch = false } = {}) {
         const accountLink = header.querySelector(
             '#account-panel-link'
         );
+        const adminLink = header.querySelector(
+            '#account-admin-link'
+        );
+
+        const isAdmin = isAuthenticated && user?.role === 'admin';
+
+        if (adminLink) {
+            adminLink.hidden = !isAdmin;
+        }
 
         if (!isAuthenticated) {
             accountLabel.textContent = 'Entrar';
