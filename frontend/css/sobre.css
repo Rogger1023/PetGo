@@ -1,0 +1,92 @@
+.about-page {
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: 72px 24px;
+}
+
+.about-hero {
+    text-align: center;
+    margin-bottom: 52px;
+}
+
+.about-paw {
+    font-size: 48px;
+}
+
+.about-hero h1 {
+    color: #6D3FA9;
+    font-size: clamp(2rem, 4vw, 3rem);
+    margin: 18px 0;
+}
+
+.about-hero p {
+    max-width: 680px;
+    margin: 0 auto;
+    line-height: 1.8;
+}
+
+.about-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 24px;
+}
+
+.about-card {
+    background: #FFFFFF;
+    padding: 32px;
+    border-radius: 14px;
+    box-shadow: 0 4px 20px rgba(45, 25, 65, 0.06);
+}
+
+.about-card h2 {
+    color: #2E7D5B;
+    margin-bottom: 14px;
+}
+
+.about-card p {
+    line-height: 1.7;
+}
+
+.about-cta {
+    margin-top: 56px;
+    padding: 40px 24px;
+    text-align: center;
+    border-radius: 16px;
+    background: #E9DCF6;
+}
+
+.about-cta h2 {
+    color: #6D3FA9;
+}
+
+.about-cta p {
+    margin-bottom: 28px;
+}
+
+.about-button {
+    display: inline-block;
+    padding: 14px 30px;
+    background: #6D3FA9;
+    color: #FFFFFF;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.about-button:hover {
+    background: #57318A;
+}
+
+@media (max-width: 700px) {
+    .about-page {
+        padding: 40px 20px;
+    }
+
+    .about-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .about-card {
+        padding: 24px;
+    }
+}
