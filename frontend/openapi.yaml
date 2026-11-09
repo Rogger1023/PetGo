@@ -18,6 +18,76 @@ tags:
     description: Consulta ao catálogo público.
 
 paths:
+  /api/admin/products:
+    get:
+      tags:
+        - Administração
+      summary: Listar produtos no painel administrativo
+      description: |
+        Lista produtos ativos e inativos para gerenciamento.
+
+        Permite pesquisar pelo nome e filtrar pelo
+        status do produto.
+
+        A operação exige um token Sanctum válido
+        pertencente a um administrador.
+
+      operationId: adminListProducts
+
+      security:
+        - BearerAuth: []
+
+      parameters:
+        - name: page
+          in: query
+          required: false
+          description: Número da página.
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+
+        - name: search
+          in: query
+          required: false
+          description: Pesquisa pelo nome do produto.
+          schema:
+            type: string
+            maxLength: 100
+
+        - name: status
+          in: query
+          required: false
+          description: Filtra produtos pelo status.
+          schema:
+            type: string
+            enum:
+              - all
+              - active
+              - inactive
+            default: all
+
+      responses:
+        '200':
+          description: |
+            Produtos encontrados, ordenados do ID
+            mais recente para o mais antigo,
+            com paginação de 15 registros.
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductCollection'
+
+        '401':
+          description: Token ausente ou inválido.
+
+        '403':
+          description: Usuário sem permissão administrativa.
+
+        '422':
+          description: Parâmetros de pesquisa inválidos.
+
   /api/health:
     get:
       tags:
@@ -66,12 +136,18 @@ paths:
 components:
   securitySchemes:
     BearerAuth:
-      type: http
-      scheme: bearer
-      bearerFormat: token
-      description: |
-        Esquema preparado para futuras rotas protegidas.
-        Os endpoints atuais não exigem token.
+    type: http
+    scheme: bearer
+    bearerFormat: token
+    description: |
+      Autenticação por token utilizando Laravel Sanctum.
+      Faça login na API para obter um token de acesso.
+
+      No Swagger UI, clique em Authorize e informe
+      o token recebido no login.
+
+      As rotas administrativas também exigem que
+      o usuário autenticado possua o papel admin.
 
   responses:
     ValidationError:

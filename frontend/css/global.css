@@ -636,3 +636,26 @@ img {
 .site-header .account-panel-link:hover {
     background: #59328E;
 }
+#account-admin-link[hidden] {
+    display: none;
+}
+
+.account-panel-admin-link {
+    display: block;
+    margin-top: 10px;
+    padding: 12px 16px;
+
+    border: 1px solid #6D3FA9;
+    border-radius: 8px;
+
+    background: #F3F0EA;
+    color: #6D3FA9;
+
+    text-align: center;
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.account-panel-admin-link:hover {
+    background: #EADCF8;
+}

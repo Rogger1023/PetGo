@@ -26,6 +26,9 @@ WORKDIR /app
 # Copia os arquivos do Laravel
 COPY . /app
 
+# Serve documentation directly from public, including /api/docs without a redirect.
+COPY Caddyfile /etc/frankenphp/Caddyfile
+
 # Instala dependências e configura permissões
 RUN composer install --no-interaction --prefer-dist --optimize-autoloader \
     && mkdir -p storage/app/public bootstrap/cache \
