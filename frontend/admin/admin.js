@@ -1,5 +1,5 @@
 import { apiRequest } from '../js/api.js';
-import { getAuthToken } from '../js/services/auth.js';
+import { getAuthToken,clearAuthSession } from '../js/services/auth.js';
 
 const statusElement = document.querySelector('#admin-status');
 const dashboard = document.querySelector('#admin-dashboard');
@@ -189,10 +189,13 @@ async function initializeAdmin() {
         }
 
         if (error.status === 401) {
+            clearAuthSession();
+
             setStatus(
                 'Sessão inválida ou expirada. Faça login novamente.',
                 true
             );
+
             return;
         }
 

@@ -1,0 +1,2316 @@
+openapi: 3.0.3
+info:
+  title: PetGo API
+  version: 1.0.0
+  description: 'Especificação auditada a partir do código enviado em PetGo.zip (09/11/2026).
+
+
+    Autenticação real: tokens pessoais do Laravel Sanctum. POST /api/register e POST /api/login retornam {user,
+    token}. Copie token para Authorize. Logout revoga somente o token usado. Não há login por sessão implementado
+    nem statefulApi() no bootstrap; obter /sanctum/csrf-cookie não autentica. Nenhuma mudança de autenticação foi
+    realizada.
+
+
+    Acesso público: saúde, catálogo, categorias, cadastro/login e criação de carrinho visitante. Demais operações
+    de visitante exigem X-Guest-Cart-Token. auth:sanctum permite qualquer usuário autenticado nas rotas comuns;
+    propriedade é verificada em consultas/serviços. Rotas administrativas exigem role exatamente admin via middleware;
+    não há policies/gates adicionais no código da aplicação.
+
+
+    Respostas seguem Resources: envelope data quando retornados diretamente; paginação também inclui links/meta.
+    Login/cadastro usam {user,token}; GET /api/me usa {user}; criação de visitante usa {cart,guest_cart_token};
+    checkout usa {message,order}. Esses objetos internos não recebem envelope data. Valores monetários são centavos
+    inteiros. Campos condicionais dos Resources são descritos nos schemas/operações.
+
+
+    Try it out usa o mesmo host do proxy. servers=/ e paths completos evitam duplicar /api. As operações de escrita
+    alteram dados reais. Erros são JSON com Accept: application/json; em modo debug Laravel pode incluir detalhes
+    adicionais. Apenas endpoints da API e a rota Sanctum relevante são incluídos; página Laravel /, saúde de framework
+    /up e rotas internas de armazenamento não integram o contrato de negócio.'
+servers:
+- url: /
+  description: Mesmo host e porta da documentação; /api é preservado pelo proxy.
+tags:
+- name: Saúde
+- name: Autenticação
+- name: Produtos
+- name: Categorias
+- name: Carrinho visitante
+- name: Carrinho autenticado
+- name: Endereços
+- name: Checkout
+- name: Pedidos
+- name: Administração de produtos
+- name: Administração de categorias
+- name: Administração de pedidos
+- name: Estoque
+- name: Infraestrutura Sanctum
+paths:
+  /api/health:
+    get:
+      tags:
+      - Saúde
+      summary: Consultar saúde da API
+      operationId: get_api_health
+      description: Público.
+      security: []
+      responses:
+        '200':
+          description: Sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  app:
+                    type: string
+                    enum:
+                    - PetGo
+                  status:
+                    type: string
+                    enum:
+                    - ok
+                required:
+                - app
+                - status
+  /api/register:
+    post:
+      tags:
+      - Autenticação
+      summary: Cadastrar cliente e emitir token
+      operationId: post_api_register
+      description: Público. Sempre cria role customer. Campos extras como role não são usados. guest_cart_token
+        validado não é consumido pelo AuthService.
+      security: []
+      responses:
+        '201':
+          description: Sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResult'
+        '422':
+          $ref: '#/components/responses/Error422'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterInput'
+  /api/login:
+    post:
+      tags:
+      - Autenticação
+      summary: Autenticar e emitir token
+      operationId: post_api_login
+      description: 'Público. X-Guest-Cart-Token opcional mescla o carrinho visitante ao carrinho ativo do usuário
+        antes de emitir o token. Soma quantidades; valida produto ativo, estoque e limite 20. A mesclagem é transacional,
+        limpa os itens e invalida o token visitante. Credenciais inválidas: 401. Token visitante malformado: 422;
+        não encontrado/inativo: 404.'
+      security: []
+      responses:
+        '200':
+          description: Sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResult'
+        '401':
+          $ref: '#/components/responses/Error401'
+        '404':
+          $ref: '#/components/responses/Error404'
+        '422':
+          $ref: '#/components/responses/Error422'
+      parameters:
+      - name: X-Guest-Cart-Token
+        in: header
+        required: false
+        schema: &id003
+          type: string
+          minLength: 64
+          maxLength: 64
+          pattern: ^[a-zA-Z0-9]{64}$
+        description: Token retornado por POST /api/guest/cart. Não é o token de autenticação do usuário.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginInput'
+  /api/me:
+    get:
+      tags:
+      - Autenticação
+      summary: Consultar usuário autenticado
+      operationId: get_api_me
+      description: Exige auth:sanctum. Não há restrição de role nesta rota.
+      security:
+      - BearerAuth: []
+      responses:
+        '200':
+          description: Sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user:
+                    $ref: '#/components/schemas/User'
+                required:
+                - user
+        '401':
+          $ref: '#/components/responses/Error401'
+  /api/logout:
+    post:
+      tags:
+      - Autenticação
+      summary: Revogar token atual
+      operationId: post_api_logout
+      description: Exige auth:sanctum. Não há restrição de role nesta rota. Remove currentAccessToken(); outros
+        tokens pessoais permanecem válidos.
+      security:
+      - BearerAuth: []
+      responses:
+        '200':
+          description: Sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+        '401':
+          $ref: '#/components/responses/Error401'
+  /api/products:
+    get:
+      tags:
+      - Produtos
+      summary: Listar catálogo público
+      operationId: get_api_products
+      description: Público. Somente ativos; nome crescente; 12 por página. Estoque zero não remove o produto do
+        catálogo.
+      security: []
+      responses:
+        '200':
+          description: Sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductPage'
+        '422':
+          $ref: '#/components/responses/Error422'
+      parameters:
+      - &id001
+        name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+        description: Página do paginador Laravel (tamanho fixo; não há parâmetro per_page).
+      - &id002
+        name: search
+        in: query
+        required: false
+        schema:
+          type: string
+          maxLength: 100
+          nullable: true
+        description: Nome contém o texto (LIKE); espaços externos removidos.
+      - name: category_id
+        in: query
+        required: false
+        schema:
+          type: integer
+          nullable: true
+        description: Categoria existente; ID inexistente resulta em 422.
+  /api/products/{product}:
+    get:
+      tags:
+      - Produtos
+      summary: Consultar produto ativo
+      operationId: get_api_products_product
+      description: Público.
+      security: []
+      responses:
+        '200':
+          description: Sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Product'
+                required:
+                - data
+        '404':
+          $ref: '#/components/responses/Error404'
+      parameters:
+      - name: product
+        in: path
+        required: true
+        schema:
+          type: integer
+        description: ID de product.
+  /api/products/{product}/image:
+    get:
+      tags:
+      - Produtos
+      summary: Obter imagem do produto
+      operationId: get_api_products_product_image
+      description: Público. Stream do disco public. Exige produto ativo, image_path preenchido e arquivo existente.
+        Sem envelope JSON no sucesso.
+      security: []
+      responses:
+        '200':
+          description: Conteúdo binário da imagem; Content-Type determinado pelo arquivo armazenado.
+          content:
+            image/*:
+              schema:
+                type: string
+                format: binary
+        '404':
+          $ref: '#/components/responses/Error404'
+      parameters:
+      - name: product
+        in: path
+        required: true
+        schema:
+          type: integer
+        description: ID de product.
+  /api/categories:
+    get:
+      tags:
+      - Categorias
+      summary: Listar categorias
+      operationId: get_api_categories
+      description: Público. Nome crescente; 12 por página. Não filtra por produtos ativos.
+      security: []
+      responses:
+        '200':
+          description: Sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CategoryPage'
+      parameters:
+      - *id001
+  /api/categories/{category}:
+    get:
+      tags:
+      - Categorias
+      summary: Consultar categoria
+      operationId: get_api_categories_category
+      description: Público.
+      security: []
+      responses:
+        '200':
+          description: Sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Category'
+                required:
+                - data
+        '404':
+          $ref: '#/components/responses/Error404'
+      parameters:
+      - name: category
+        in: path
+        required: true
+        schema:
+          type: integer
+        description: ID de category.
+  /api/admin/products:
+    get:
+      tags:
+      - Administração de produtos
+      summary: Listar produtos ativos e inativos
+      operationId: get_api_admin_products
+      description: 'Exige auth:sanctum e EnsureUserIsAdmin (User::isAdmin(): role === ''admin''). ID decrescente;
+        15 por página; status omitido assume all.'
+      security:
+      - BearerAuth: []
+      responses:
+        '200':
+          description: Sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductPage'
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'
+        '422':
+          $ref: '#/components/responses/Error422'
+      parameters:
+      - *id001
+      - *id002
+      - name: status
+        in: query
+        required: false
+        schema:
+          type: string
+          enum:
+          - all
+          - active
+          - inactive
+          nullable: true
+          default: all
+    post:
+      tags:
+      - Administração de produtos
+      summary: Criar produto
+      operationId: post_api_admin_products
+      description: 'Exige auth:sanctum e EnsureUserIsAdmin (User::isAdmin(): role === ''admin''). Registra movimentação
+        de estoque inicial quando stock > 0. is_active omitido usa o padrão true do banco.'
+      security:
+      - BearerAuth: []
+      responses:
+        '201':
+          description: Sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Product'
+                required:
+                - data
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'
+        '422':
+          $ref: '#/components/responses/Error422'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductCreate'
+  /api/admin/products/{product}:
+    put:
+      tags:
+      - Administração de produtos
+      summary: Atualizar produto
+      operationId: put_api_admin_products_product
+      description: 'Exige auth:sanctum e EnsureUserIsAdmin (User::isAdmin(): role === ''admin''). Atualização parcial;
+        alterações de estoque registram movimentação administrativa, com bloqueio e transação.'
+      security:
+      - BearerAuth: []
+      responses:
+        '200':
+          description: Sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Product'
+                required:
+                - data
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'
+        '404':
+          $ref: '#/components/responses/Error404'
+        '422':
+          $ref: '#/components/responses/Error422'
+      parameters:
+      - name: product
+        in: path
+        required: true
+        schema:
+          type: integer
+        description: ID de product.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductUpdate'
+    patch:
+      tags:
+      - Administração de produtos
+      summary: Atualizar produto
+      operationId: patch_api_admin_products_product
+      description: 'Exige auth:sanctum e EnsureUserIsAdmin (User::isAdmin(): role === ''admin''). Atualização parcial;
+        alterações de estoque registram movimentação administrativa, com bloqueio e transação.'
+      security:
+      - BearerAuth: []
+      responses:
+        '200':
+          description: Sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Product'
+                required:
+                - data
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'
+        '404':
+          $ref: '#/components/responses/Error404'
+        '422':
+          $ref: '#/components/responses/Error422'
+      parameters:
+      - name: product
+        in: path
+        required: true
+        schema:
+          type: integer
+        description: ID de product.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductUpdate'
+    delete:
+      tags:
+      - Administração de produtos
+      summary: Desativar produto
+      operationId: delete_api_admin_products_product
+      description: 'Exige auth:sanctum e EnsureUserIsAdmin (User::isAdmin(): role === ''admin''). Define is_active=false.
+        Não exclui fisicamente nem modifica estoque.'
+      security:
+      - BearerAuth: []
+      responses:
+        '204':
+          description: Sucesso, sem corpo.
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'
+        '404':
+          $ref: '#/components/responses/Error404'
+      parameters:
+      - name: product
+        in: path
+        required: true
+        schema:
+          type: integer
+        description: ID de product.
+  /api/admin/products/{product}/stock-movements:
+    get:
+      tags:
+      - Estoque
+      summary: Consultar movimentações do produto
+      operationId: get_api_admin_products_product_stock_movements
+      description: 'Exige auth:sanctum e EnsureUserIsAdmin (User::isAdmin(): role === ''admin''). ID decrescente;
+        20 por página. Inclui actor_user_id, order_id e reason anuláveis.'
+      security:
+      - BearerAuth: []
+      responses:
+        '200':
+          description: Sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StockMovementPage'
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'
+        '404':
+          $ref: '#/components/responses/Error404'
+      parameters:
+      - name: product
+        in: path
+        required: true
+        schema:
+          type: integer
+        description: ID de product.
+      - *id001
+  /api/admin/categories:
+    post:
+      tags:
+      - Administração de categorias
+      summary: Criar categoria
+      operationId: post_api_admin_categories
+      description: 'Exige auth:sanctum e EnsureUserIsAdmin (User::isAdmin(): role === ''admin'').'
+      security:
+      - BearerAuth: []
+      responses:
+        '201':
+          description: Sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Category'
+                required:
+                - data
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'
+        '422':
+          $ref: '#/components/responses/Error422'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CategoryCreate'
+  /api/admin/categories/{category}:
+    put:
+      tags:
+      - Administração de categorias
+      summary: Atualizar categoria
+      operationId: put_api_admin_categories_category
+      description: 'Exige auth:sanctum e EnsureUserIsAdmin (User::isAdmin(): role === ''admin''). Atualização parcial
+        em PUT e PATCH.'
+      security:
+      - BearerAuth: []
+      responses:
+        '200':
+          description: Sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Category'
+                required:
+                - data
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'
+        '404':
+          $ref: '#/components/responses/Error404'
+        '422':
+          $ref: '#/components/responses/Error422'
+      parameters:
+      - name: category
+        in: path
+        required: true
+        schema:
+          type: integer
+        description: ID de category.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CategoryUpdate'
+    patch:
+      tags:
+      - Administração de categorias
+      summary: Atualizar categoria
+      operationId: patch_api_admin_categories_category
+      description: 'Exige auth:sanctum e EnsureUserIsAdmin (User::isAdmin(): role === ''admin''). Atualização parcial
+        em PUT e PATCH.'
+      security:
+      - BearerAuth: []
+      responses:
+        '200':
+          description: Sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Category'
+                required:
+                - data
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'
+        '404':
+          $ref: '#/components/responses/Error404'
+        '422':
+          $ref: '#/components/responses/Error422'
+      parameters:
+      - name: category
+        in: path
+        required: true
+        schema:
+          type: integer
+        description: ID de category.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CategoryUpdate'
+    delete:
+      tags:
+      - Administração de categorias
+      summary: Excluir categoria sem produtos
+      operationId: delete_api_admin_categories_category
+      description: 'Exige auth:sanctum e EnsureUserIsAdmin (User::isAdmin(): role === ''admin''). 409 se houver
+        qualquer produto associado, inclusive inativo; caso contrário exclui fisicamente.'
+      security:
+      - BearerAuth: []
+      responses:
+        '204':
+          description: Sucesso, sem corpo.
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'
+        '404':
+          $ref: '#/components/responses/Error404'
+        '409':
+          $ref: '#/components/responses/Error409'
+      parameters:
+      - name: category
+        in: path
+        required: true
+        schema:
+          type: integer
+        description: ID de category.
+  /api/guest/cart:
+    post:
+      tags:
+      - Carrinho visitante
+      summary: Criar carrinho visitante
+      operationId: post_api_guest_cart
+      description: 'Público. 10 requisições por minuto; Cache-Control: no-store. Token aleatório de 64 caracteres,
+        armazenado somente como hash. Resposta sem envelope data.'
+      security: []
+      responses:
+        '201':
+          description: Sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  cart:
+                    $ref: '#/components/schemas/Cart'
+                  guest_cart_token:
+                    type: string
+                    minLength: 64
+                    maxLength: 64
+                required:
+                - cart
+                - guest_cart_token
+        '429':
+          $ref: '#/components/responses/Error429'
+    get:
+      tags:
+      - Carrinho visitante
+      summary: Consultar carrinho visitante
+      operationId: get_api_guest_cart
+      description: 'Público. 60 por minuto; Cache-Control: no-store. Token deve identificar carrinho ativo sem usuário.'
+      security: []
+      responses:
+        '200':
+          description: Sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Cart'
+                required:
+                - data
+        '401':
+          $ref: '#/components/responses/Error401'
+        '404':
+          $ref: '#/components/responses/Error404'
+        '422':
+          $ref: '#/components/responses/Error422'
+        '429':
+          $ref: '#/components/responses/Error429'
+      parameters:
+      - &id004
+        name: X-Guest-Cart-Token
+        in: header
+        required: true
+        schema: *id003
+        description: Token retornado por POST /api/guest/cart. Não é o token de autenticação do usuário.
+  /api/cart:
+    get:
+      tags:
+      - Carrinho autenticado
+      summary: Consultar ou criar carrinho ativo
+      operationId: get_api_cart
+      description: Exige auth:sanctum. Não há restrição de role nesta rota. Cria um carrinho ativo quando necessário,
+        mesmo sendo GET; carrega itens, produtos e categorias. Não há paginação.
+      security:
+      - BearerAuth: []
+      responses:
+        '200':
+          description: Sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Cart'
+                required:
+                - data
+        '401':
+          $ref: '#/components/responses/Error401'
+  /api/cart/items:
+    post:
+      tags:
+      - Carrinho autenticado
+      summary: Adicionar unidades de produto ao carrinho
+      operationId: post_api_cart_items
+      description: Exige auth:sanctum. Não há restrição de role nesta rota. Opera no carrinho ativo do usuário;
+        cria esse carrinho se ainda não existir. Se o produto já existir, soma quantidades. Valida quantidade acumulada
+        ≤20, produto ativo e estoque. Retorna o carrinho completo com status 200.
+      security:
+      - BearerAuth: []
+      responses:
+        '200':
+          description: Sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Cart'
+                required:
+                - data
+        '401':
+          $ref: '#/components/responses/Error401'
+        '404':
+          $ref: '#/components/responses/Error404'
+        '422':
+          $ref: '#/components/responses/Error422'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CartItemInput'
+  /api/cart/items/{item}:
+    patch:
+      tags:
+      - Carrinho autenticado
+      summary: Substituir quantidade do item
+      operationId: patch_api_cart_items_item
+      description: Exige auth:sanctum. Não há restrição de role nesta rota. Opera no carrinho ativo do usuário;
+        cria esse carrinho se ainda não existir. Exige que o item pertença a este carrinho. Produto deve estar ativo,
+        com estoque suficiente e quantidade entre 1 e 20.
+      security:
+      - BearerAuth: []
+      responses:
+        '200':
+          description: Sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Cart'
+                required:
+                - data
+        '401':
+          $ref: '#/components/responses/Error401'
+        '404':
+          $ref: '#/components/responses/Error404'
+        '422':
+          $ref: '#/components/responses/Error422'
+      parameters:
+      - name: item
+        in: path
+        required: true
+        schema:
+          type: integer
+        description: ID de item.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QuantityInput'
+    delete:
+      tags:
+      - Carrinho autenticado
+      summary: Remover item do carrinho
+      operationId: delete_api_cart_items_item
+      description: Exige auth:sanctum. Não há restrição de role nesta rota. Opera no carrinho ativo do usuário;
+        cria esse carrinho se ainda não existir. Exige que o item pertença a este carrinho. Retorna carrinho completo,
+        status 200, sem reservar nem devolver estoque.
+      security:
+      - BearerAuth: []
+      responses:
+        '200':
+          description: Sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Cart'
+                required:
+                - data
+        '401':
+          $ref: '#/components/responses/Error401'
+        '404':
+          $ref: '#/components/responses/Error404'
+      parameters:
+      - name: item
+        in: path
+        required: true
+        schema:
+          type: integer
+        description: ID de item.
+  /api/guest/cart/items:
+    post:
+      tags:
+      - Carrinho visitante
+      summary: Adicionar unidades de produto ao carrinho
+      operationId: post_api_guest_cart_items
+      description: 'Público. 60 por minuto; Cache-Control: no-store. Se o produto já existir, soma quantidades.
+        Valida quantidade acumulada ≤20, produto ativo e estoque. Retorna o carrinho completo com status 200.'
+      security: []
+      responses:
+        '200':
+          description: Sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Cart'
+                required:
+                - data
+        '401':
+          $ref: '#/components/responses/Error401'
+        '404':
+          $ref: '#/components/responses/Error404'
+        '422':
+          $ref: '#/components/responses/Error422'
+        '429':
+          $ref: '#/components/responses/Error429'
+      parameters:
+      - *id004
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CartItemInput'
+  /api/guest/cart/items/{item}:
+    patch:
+      tags:
+      - Carrinho visitante
+      summary: Substituir quantidade do item
+      operationId: patch_api_guest_cart_items_item
+      description: 'Público. 60 por minuto; Cache-Control: no-store. Exige que o item pertença a este carrinho.
+        Produto deve estar ativo, com estoque suficiente e quantidade entre 1 e 20.'
+      security: []
+      responses:
+        '200':
+          description: Sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Cart'
+                required:
+                - data
+        '401':
+          $ref: '#/components/responses/Error401'
+        '404':
+          $ref: '#/components/responses/Error404'
+        '422':
+          $ref: '#/components/responses/Error422'
+        '429':
+          $ref: '#/components/responses/Error429'
+      parameters:
+      - name: item
+        in: path
+        required: true
+        schema:
+          type: integer
+        description: ID de item.
+      - *id004
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QuantityInput'
+    delete:
+      tags:
+      - Carrinho visitante
+      summary: Remover item do carrinho
+      operationId: delete_api_guest_cart_items_item
+      description: 'Público. 60 por minuto; Cache-Control: no-store. Exige que o item pertença a este carrinho.
+        Retorna carrinho completo, status 200, sem reservar nem devolver estoque.'
+      security: []
+      responses:
+        '200':
+          description: Sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Cart'
+                required:
+                - data
+        '401':
+          $ref: '#/components/responses/Error401'
+        '404':
+          $ref: '#/components/responses/Error404'
+        '422':
+          $ref: '#/components/responses/Error422'
+        '429':
+          $ref: '#/components/responses/Error429'
+      parameters:
+      - name: item
+        in: path
+        required: true
+        schema:
+          type: integer
+        description: ID de item.
+      - *id004
+  /api/addresses:
+    get:
+      tags:
+      - Endereços
+      summary: Listar meus endereços
+      operationId: get_api_addresses
+      description: Exige auth:sanctum. Não há restrição de role nesta rota. Apenas do usuário autenticado; principais
+        primeiro, depois ID crescente. Sem paginação.
+      security:
+      - BearerAuth: []
+      responses:
+        '200':
+          description: Sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Address'
+                required:
+                - data
+        '401':
+          $ref: '#/components/responses/Error401'
+    post:
+      tags:
+      - Endereços
+      summary: Criar endereço
+      operationId: post_api_addresses
+      description: Exige auth:sanctum. Não há restrição de role nesta rota. Primeiro endereço sempre é principal.
+        is_default=true desmarca os demais, em transação.
+      security:
+      - BearerAuth: []
+      responses:
+        '201':
+          description: Sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Address'
+                required:
+                - data
+        '401':
+          $ref: '#/components/responses/Error401'
+        '422':
+          $ref: '#/components/responses/Error422'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddressInput'
+  /api/addresses/{address}:
+    get:
+      tags:
+      - Endereços
+      summary: Consultar meu endereço
+      operationId: get_api_addresses_address
+      description: Exige auth:sanctum. Não há restrição de role nesta rota. Endereço de outro usuário retorna 404.
+      security:
+      - BearerAuth: []
+      responses:
+        '200':
+          description: Sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Address'
+                required:
+                - data
+        '401':
+          $ref: '#/components/responses/Error401'
+        '404':
+          $ref: '#/components/responses/Error404'
+      parameters:
+      - name: address
+        in: path
+        required: true
+        schema:
+          type: integer
+        description: ID de address.
+    put:
+      tags:
+      - Endereços
+      summary: Atualizar meu endereço
+      operationId: put_api_addresses_address
+      description: Exige auth:sanctum. Não há restrição de role nesta rota. Exige todos os campos obrigatórios do
+        cadastro. Não permite is_default=false para o endereço principal; escolha outro principal antes. true desmarca
+        os demais.
+      security:
+      - BearerAuth: []
+      responses:
+        '200':
+          description: Sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Address'
+                required:
+                - data
+        '401':
+          $ref: '#/components/responses/Error401'
+        '404':
+          $ref: '#/components/responses/Error404'
+        '422':
+          $ref: '#/components/responses/Error422'
+      parameters:
+      - name: address
+        in: path
+        required: true
+        schema:
+          type: integer
+        description: ID de address.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddressInput'
+    delete:
+      tags:
+      - Endereços
+      summary: Excluir meu endereço
+      operationId: delete_api_addresses_address
+      description: Exige auth:sanctum. Não há restrição de role nesta rota. Ao excluir o principal, promove o endereço
+        de menor ID restante. Pedidos preservam o snapshot anterior.
+      security:
+      - BearerAuth: []
+      responses:
+        '204':
+          description: Sucesso, sem corpo.
+        '401':
+          $ref: '#/components/responses/Error401'
+        '404':
+          $ref: '#/components/responses/Error404'
+      parameters:
+      - name: address
+        in: path
+        required: true
+        schema:
+          type: integer
+        description: ID de address.
+  /api/checkout:
+    post:
+      tags:
+      - Checkout
+      summary: Processar pedido a partir do carrinho
+      operationId: post_api_checkout
+      description: 'Exige auth:sanctum. Não há restrição de role nesta rota. 10 por minuto. Recalcula preços no
+        servidor; frete 0; exige carrinho não vazio, produtos ativos, estoque e limite 20 por produto. Transação
+        com bloqueios: cria pedido pending_payment, snapshot, itens, pagamento pending, histórico e movimentos;
+        desconta estoque e marca carrinho checked_out. Mesma checkout_key do mesmo usuário retorna pedido existente,
+        ainda 201, sem repetir efeitos; chave de outro usuário: 409. Endereço de outro usuário: 422 na validação.
+        Resposta {message, order}, sem data externo.'
+      security:
+      - BearerAuth: []
+      responses:
+        '201':
+          description: Sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  order:
+                    $ref: '#/components/schemas/Order'
+                required:
+                - message
+                - order
+        '401':
+          $ref: '#/components/responses/Error401'
+        '404':
+          $ref: '#/components/responses/Error404'
+        '409':
+          $ref: '#/components/responses/Error409'
+        '422':
+          $ref: '#/components/responses/Error422'
+        '429':
+          $ref: '#/components/responses/Error429'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CheckoutInput'
+  /api/orders:
+    get:
+      tags:
+      - Pedidos
+      summary: Listar pedidos
+      operationId: get_api_orders
+      description: Exige auth:sanctum. Não há restrição de role nesta rota. Somente pedidos do usuário; pedido alheio
+        retorna 404, inclusive para administrador usando esta rota. ID decrescente; 10 por página. Inclui items
+        e payment; não há filtros de status.
+      security:
+      - BearerAuth: []
+      responses:
+        '200':
+          description: Sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderPage'
+        '401':
+          $ref: '#/components/responses/Error401'
+      parameters:
+      - *id001
+  /api/orders/{order}:
+    get:
+      tags:
+      - Pedidos
+      summary: Consultar pedido
+      operationId: get_api_orders_order
+      description: Exige auth:sanctum. Não há restrição de role nesta rota. Somente pedidos do usuário; pedido alheio
+        retorna 404, inclusive para administrador usando esta rota. Inclui items e payment; itens são snapshots,
+        sem objeto product.
+      security:
+      - BearerAuth: []
+      responses:
+        '200':
+          description: Sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Order'
+                required:
+                - data
+        '401':
+          $ref: '#/components/responses/Error401'
+        '404':
+          $ref: '#/components/responses/Error404'
+      parameters:
+      - name: order
+        in: path
+        required: true
+        schema:
+          type: integer
+        description: ID de order.
+  /api/orders/{order}/history:
+    get:
+      tags:
+      - Pedidos
+      summary: Consultar histórico do pedido
+      operationId: get_api_orders_order_history
+      description: Exige auth:sanctum. Não há restrição de role nesta rota. Somente pedidos do usuário; pedido alheio
+        retorna 404, inclusive para administrador usando esta rota. ID crescente, sem paginação. Não inclui source
+        nem actor.
+      security:
+      - BearerAuth: []
+      responses:
+        '200':
+          description: Sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/History'
+                required:
+                - data
+        '401':
+          $ref: '#/components/responses/Error401'
+        '404':
+          $ref: '#/components/responses/Error404'
+      parameters:
+      - name: order
+        in: path
+        required: true
+        schema:
+          type: integer
+        description: ID de order.
+  /api/admin/orders:
+    get:
+      tags:
+      - Administração de pedidos
+      summary: Listar pedidos
+      operationId: get_api_admin_orders
+      description: 'Exige auth:sanctum e EnsureUserIsAdmin (User::isAdmin(): role === ''admin''). Qualquer pedido.
+        Inclui user (id, name, email). ID decrescente; 15 por página. Inclui items e payment; não há filtros de
+        status.'
+      security:
+      - BearerAuth: []
+      responses:
+        '200':
+          description: Sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminOrderPage'
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'
+      parameters:
+      - *id001
+  /api/admin/orders/{order}:
+    get:
+      tags:
+      - Administração de pedidos
+      summary: Consultar pedido
+      operationId: get_api_admin_orders_order
+      description: 'Exige auth:sanctum e EnsureUserIsAdmin (User::isAdmin(): role === ''admin''). Qualquer pedido.
+        Inclui user (id, name, email). Inclui items e payment; itens são snapshots, sem objeto product.'
+      security:
+      - BearerAuth: []
+      responses:
+        '200':
+          description: Sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/AdminOrder'
+                required:
+                - data
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'
+        '404':
+          $ref: '#/components/responses/Error404'
+      parameters:
+      - name: order
+        in: path
+        required: true
+        schema:
+          type: integer
+        description: ID de order.
+  /api/admin/orders/{order}/history:
+    get:
+      tags:
+      - Administração de pedidos
+      summary: Consultar histórico do pedido
+      operationId: get_api_admin_orders_order_history
+      description: 'Exige auth:sanctum e EnsureUserIsAdmin (User::isAdmin(): role === ''admin''). Qualquer pedido.
+        Inclui user (id, name, email). ID crescente, sem paginação. Inclui source e actor (id/name ou null).'
+      security:
+      - BearerAuth: []
+      responses:
+        '200':
+          description: Sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AdminHistory'
+                required:
+                - data
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'
+        '404':
+          $ref: '#/components/responses/Error404'
+      parameters:
+      - name: order
+        in: path
+        required: true
+        schema:
+          type: integer
+        description: ID de order.
+  /api/orders/{order}/cancel:
+    post:
+      tags:
+      - Pedidos
+      summary: Cancelar meu pedido pendente
+      operationId: post_api_orders_order_cancel
+      description: 'Exige auth:sanctum. Não há restrição de role nesta rota. Somente do usuário, pending_payment
+        e pagamento pending sem paid_at. Devolve estoque dos produtos existentes, cancela pagamento/pedido e registra
+        históricos/movimentos, em transação. Repetir pedido já cancelled é idempotente. Outros estados ou pagamento
+        incompatível: 409.'
+      security:
+      - BearerAuth: []
+      responses:
+        '200':
+          description: Sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Order'
+                required:
+                - data
+        '401':
+          $ref: '#/components/responses/Error401'
+        '404':
+          $ref: '#/components/responses/Error404'
+        '409':
+          $ref: '#/components/responses/Error409'
+      parameters:
+      - name: order
+        in: path
+        required: true
+        schema:
+          type: integer
+        description: ID de order.
+  /api/admin/orders/{order}/confirm-payment:
+    post:
+      tags:
+      - Administração de pedidos
+      summary: Confirmar pagamento simulado
+      operationId: post_api_admin_orders_order_confirm_payment
+      description: 'Exige auth:sanctum e EnsureUserIsAdmin (User::isAdmin(): role === ''admin''). Exige pending_payment
+        e pagamento pending sem paid_at. Marca pagamento paid e pedido processing; registra histórico. Repetir processing/paid
+        já confirmado retorna 200 sem duplicar efeitos; outros estados ou pagamento ausente: 409. Sem integração
+        com provedor externo.'
+      security:
+      - BearerAuth: []
+      responses:
+        '200':
+          description: Sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/AdminOrder'
+                required:
+                - data
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'
+        '404':
+          $ref: '#/components/responses/Error404'
+        '409':
+          $ref: '#/components/responses/Error409'
+      parameters:
+      - name: order
+        in: path
+        required: true
+        schema:
+          type: integer
+        description: ID de order.
+  /api/admin/orders/{order}/status:
+    patch:
+      tags:
+      - Administração de pedidos
+      summary: Avançar entrega do pedido
+      operationId: patch_api_admin_orders_order_status
+      description: 'Exige auth:sanctum e EnsureUserIsAdmin (User::isAdmin(): role === ''admin''). Exige pagamento
+        paid com paid_at. Transições processing → shipped → delivered; repetição do mesmo destino é idempotente
+        após validar pagamento. Pagamento incompatível ou salto/retorno de estado: 409. Registra histórico, sem
+        alterar estoque.'
+      security:
+      - BearerAuth: []
+      responses:
+        '200':
+          description: Sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/AdminOrder'
+                required:
+                - data
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'
+        '404':
+          $ref: '#/components/responses/Error404'
+        '409':
+          $ref: '#/components/responses/Error409'
+        '422':
+          $ref: '#/components/responses/Error422'
+      parameters:
+      - name: order
+        in: path
+        required: true
+        schema:
+          type: integer
+        description: ID de order.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum:
+                  - shipped
+                  - delivered
+              required:
+              - status
+  /sanctum/csrf-cookie:
+    get:
+      tags:
+      - Infraestrutura Sanctum
+      summary: Inicializar cookies CSRF do Sanctum
+      operationId: get_sanctum_csrf_cookie
+      description: 'Público. Rota web de infraestrutura do Sanctum: emite cookies de sessão/XSRF. Não faz login
+        e não substitui Bearer nesta API. bootstrap/app.php não habilita statefulApi(); AuthService emite tokens
+        pessoais, não inicia sessão de login. Não é pré-requisito para as operações /api documentadas.'
+      security: []
+      responses:
+        '204':
+          description: Sucesso, sem corpo.
+          headers:
+            Set-Cookie:
+              description: Cookies de sessão e XSRF-TOKEN, conforme a configuração de sessão.
+              schema:
+                type: string
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      description: Token pessoal Sanctum emitido por login/cadastro; informe somente o token, sem o prefixo Bearer.
+  schemas:
+    Message:
+      type: object
+      properties:
+        message:
+          type: string
+      description: Erros Laravel podem incluir campos de diagnóstico adicionais quando APP_DEBUG=true.
+      required:
+      - message
+    ValidationError:
+      type: object
+      properties:
+        message:
+          type: string
+        errors:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
+      required:
+      - message
+      - errors
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        role:
+          type: string
+      required:
+      - id
+      - name
+      - email
+      - role
+    AuthResult:
+      type: object
+      properties:
+        user:
+          $ref: '#/components/schemas/User'
+        token:
+          type: string
+          description: Token pessoal Sanctum. Copie o valor para Authorize (sem o prefixo Bearer).
+      required:
+      - user
+      - token
+    Category:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        slug:
+          type: string
+        description:
+          type: string
+          nullable: true
+      required:
+      - id
+      - name
+      - slug
+      - description
+    Product:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        slug:
+          type: string
+        description:
+          type: string
+          nullable: true
+        image_path:
+          type: string
+          nullable: true
+        image_url:
+          type: string
+          nullable: true
+          description: Caminho relativo /api/products/{id}/image, ou null. Produto inativo pode ter URL, mas a imagem
+            retorna 404.
+        price_cents:
+          type: integer
+        stock:
+          type: integer
+        in_stock:
+          type: boolean
+        category:
+          $ref: '#/components/schemas/Category'
+        category_id:
+          type: integer
+        is_active:
+          type: boolean
+      description: category só é incluída quando carregada. Nas operações documentadas de catálogo e carrinho, ela
+        é carregada.
+      required:
+      - id
+      - name
+      - slug
+      - description
+      - image_path
+      - image_url
+      - price_cents
+      - stock
+      - in_stock
+      - category_id
+      - is_active
+    CartItem:
+      type: object
+      properties:
+        id:
+          type: integer
+        product_id:
+          type: integer
+        quantity:
+          type: integer
+        product:
+          $ref: '#/components/schemas/Product'
+      required:
+      - id
+      - product_id
+      - quantity
+      - product
+    Cart:
+      type: object
+      properties:
+        id:
+          type: integer
+        status:
+          type: string
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/CartItem'
+        created_at:
+          type: string
+          format: date-time
+      required:
+      - id
+      - status
+      - items
+      - created_at
+    AddressInput:
+      type: object
+      properties:
+        recipient_name: &id005
+          type: string
+          maxLength: 120
+        phone: &id006
+          type: string
+          minLength: 8
+          maxLength: 20
+        postal_code: &id007
+          type: string
+          pattern: ^[0-9]{5}-?[0-9]{3}$
+        street: &id008
+          type: string
+          maxLength: 180
+        number: &id009
+          type: string
+          maxLength: 20
+        complement: &id010
+          type: string
+          nullable: true
+          maxLength: 120
+        neighborhood: &id011
+          type: string
+          maxLength: 100
+        city: &id012
+          type: string
+          maxLength: 100
+        state: &id013
+          type: string
+          minLength: 2
+          maxLength: 2
+          pattern: ^[A-Z]{2}$
+        reference: &id014
+          type: string
+          nullable: true
+          maxLength: 255
+        is_default: &id015
+          type: boolean
+      description: PUT exige os mesmos campos obrigatórios do POST. CEP aceita 8 dígitos com ou sem hífen; UF deve
+        estar em maiúsculas.
+      required:
+      - recipient_name
+      - phone
+      - postal_code
+      - street
+      - number
+      - neighborhood
+      - city
+      - state
+    Address:
+      type: object
+      properties:
+        id:
+          type: integer
+        recipient_name: *id005
+        phone: *id006
+        postal_code: *id007
+        street: *id008
+        number: *id009
+        complement: *id010
+        neighborhood: *id011
+        city: *id012
+        state: *id013
+        reference: *id014
+        is_default: *id015
+      description: Não inclui user_id nem timestamps.
+      required:
+      - id
+      - recipient_name
+      - phone
+      - postal_code
+      - street
+      - number
+      - complement
+      - neighborhood
+      - city
+      - state
+      - reference
+      - is_default
+    AddressSnapshot:
+      type: object
+      properties:
+        recipient_name: *id005
+        phone: *id006
+        postal_code: *id007
+        street: *id008
+        number: *id009
+        complement: *id010
+        neighborhood: *id011
+        city: *id012
+        state: *id013
+        reference: *id014
+      description: Cópia dos campos do endereço no checkout; não muda quando o endereço é alterado depois.
+      required:
+      - recipient_name
+      - phone
+      - postal_code
+      - street
+      - number
+      - complement
+      - neighborhood
+      - city
+      - state
+      - reference
+    OrderLine:
+      type: object
+      properties:
+        id:
+          type: integer
+        product_id:
+          type: integer
+          nullable: true
+        product_name:
+          type: string
+        quantity:
+          type: integer
+        unit_price_cents:
+          type: integer
+        line_total_cents:
+          type: integer
+      required:
+      - id
+      - product_id
+      - product_name
+      - quantity
+      - unit_price_cents
+      - line_total_cents
+    Payment:
+      type: object
+      properties:
+        status:
+          type: string
+        paid_at:
+          type: string
+          format: date-time
+          nullable: true
+      required:
+      - status
+      - paid_at
+    Order:
+      type: object
+      properties:
+        id:
+          type: integer
+        status:
+          type: string
+          description: 'Fluxo implementado: pending_payment → processing → shipped → delivered; pending_payment
+            → cancelled.'
+        subtotal_cents:
+          type: integer
+        shipping_cents:
+          type: integer
+        total_cents:
+          type: integer
+        address:
+          $ref: '#/components/schemas/AddressSnapshot'
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderLine'
+        payment:
+          $ref: '#/components/schemas/Payment'
+        created_at:
+          type: string
+          format: date-time
+      required:
+      - id
+      - status
+      - subtotal_cents
+      - shipping_cents
+      - total_cents
+      - address
+      - items
+      - payment
+      - created_at
+    AdminOrder:
+      allOf:
+      - $ref: '#/components/schemas/Order'
+      - type: object
+        properties:
+          user:
+            type: object
+            properties:
+              id:
+                type: integer
+              name:
+                type: string
+              email:
+                type: string
+                format: email
+            required:
+            - id
+            - name
+            - email
+        required:
+        - user
+    History:
+      type: object
+      properties:
+        id:
+          type: integer
+        from_status:
+          type: string
+          nullable: true
+        to_status:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+          nullable: true
+      required:
+      - id
+      - from_status
+      - to_status
+      - created_at
+    AdminHistory:
+      allOf:
+      - $ref: '#/components/schemas/History'
+      - type: object
+        properties:
+          source:
+            type: string
+          actor:
+            type: object
+            properties:
+              id:
+                type: integer
+              name:
+                type: string
+            nullable: true
+            required:
+            - id
+            - name
+        required:
+        - source
+        - actor
+    StockMovement:
+      type: object
+      properties:
+        id:
+          type: integer
+        product_id:
+          type: integer
+        actor_user_id:
+          type: integer
+          nullable: true
+        order_id:
+          type: integer
+          nullable: true
+        source:
+          type: string
+          description: 'Origens gravadas pelos serviços: product_creation, admin_product_update, checkout, order_cancellation.'
+        quantity_delta:
+          type: integer
+        stock_before:
+          type: integer
+        stock_after:
+          type: integer
+        reason:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          nullable: true
+      required:
+      - id
+      - product_id
+      - actor_user_id
+      - order_id
+      - source
+      - quantity_delta
+      - stock_before
+      - stock_after
+      - reason
+      - created_at
+    PaginationLinks:
+      type: object
+      properties:
+        first:
+          type: string
+          nullable: false
+        last:
+          type: string
+          nullable: false
+        prev:
+          type: string
+          nullable: true
+        next:
+          type: string
+          nullable: true
+      required:
+      - first
+      - last
+      - prev
+      - next
+    PaginationMeta:
+      type: object
+      properties:
+        current_page:
+          type: integer
+        from:
+          type: integer
+          nullable: true
+        last_page:
+          type: integer
+        links:
+          type: array
+          items:
+            type: object
+            properties:
+              url:
+                type: string
+                nullable: true
+              label:
+                type: string
+              page:
+                type: integer
+                nullable: true
+              active:
+                type: boolean
+            required:
+            - url
+            - label
+            - active
+        path:
+          type: string
+        per_page:
+          type: integer
+        to:
+          type: integer
+          nullable: true
+        total:
+          type: integer
+      required:
+      - current_page
+      - from
+      - last_page
+      - links
+      - path
+      - per_page
+      - to
+      - total
+    ProductPage:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Product'
+        links:
+          $ref: '#/components/schemas/PaginationLinks'
+        meta:
+          $ref: '#/components/schemas/PaginationMeta'
+      required:
+      - data
+      - links
+      - meta
+    CategoryPage:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Category'
+        links:
+          $ref: '#/components/schemas/PaginationLinks'
+        meta:
+          $ref: '#/components/schemas/PaginationMeta'
+      required:
+      - data
+      - links
+      - meta
+    OrderPage:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Order'
+        links:
+          $ref: '#/components/schemas/PaginationLinks'
+        meta:
+          $ref: '#/components/schemas/PaginationMeta'
+      required:
+      - data
+      - links
+      - meta
+    AdminOrderPage:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/AdminOrder'
+        links:
+          $ref: '#/components/schemas/PaginationLinks'
+        meta:
+          $ref: '#/components/schemas/PaginationMeta'
+      required:
+      - data
+      - links
+      - meta
+    StockMovementPage:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/StockMovement'
+        links:
+          $ref: '#/components/schemas/PaginationLinks'
+        meta:
+          $ref: '#/components/schemas/PaginationMeta'
+      required:
+      - data
+      - links
+      - meta
+    CategoryCreate:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 120
+          description: Único em categories.name.
+        slug:
+          type: string
+          maxLength: 140
+          description: Único em categories.slug; alpha_dash do Laravel (letras/números Unicode, hífen e underscore).
+        description:
+          type: string
+          nullable: true
+      required:
+      - name
+      - slug
+    CategoryUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 120
+          description: Único em categories.name.
+        slug:
+          type: string
+          maxLength: 140
+          description: Único em categories.slug; alpha_dash do Laravel (letras/números Unicode, hífen e underscore).
+        description:
+          type: string
+          nullable: true
+      description: Campos opcionais; name e slug, quando enviados, não podem ser vazios. Unicidade ignora a própria
+        categoria.
+    ProductCreate:
+      type: object
+      properties:
+        category_id:
+          type: integer
+          description: Deve existir em categories.id.
+        name:
+          type: string
+          maxLength: 180
+        slug:
+          type: string
+          maxLength: 220
+          description: Único em products.slug; alpha_dash do Laravel.
+        description:
+          type: string
+          nullable: true
+        image_path:
+          type: string
+          nullable: true
+          maxLength: 255
+          description: Caminho de arquivo já existente no disco public. Esta operação não recebe upload.
+        price_cents:
+          type: integer
+          minimum: 0
+        stock:
+          type: integer
+          minimum: 0
+        is_active:
+          type: boolean
+      required:
+      - category_id
+      - name
+      - slug
+      - price_cents
+      - stock
+    ProductUpdate:
+      type: object
+      properties:
+        category_id:
+          type: integer
+          description: Deve existir em categories.id.
+        name:
+          type: string
+          maxLength: 180
+        slug:
+          type: string
+          maxLength: 220
+          description: Único em products.slug; alpha_dash do Laravel.
+        description:
+          type: string
+          nullable: true
+        image_path:
+          type: string
+          nullable: true
+          maxLength: 255
+          description: Caminho de arquivo já existente no disco public. Esta operação não recebe upload.
+        price_cents:
+          type: integer
+          minimum: 0
+        stock:
+          type: integer
+          minimum: 0
+        is_active:
+          type: boolean
+      description: PUT e PATCH aceitam atualização parcial. Campos não anuláveis não podem ser vazios quando enviados.
+        Unicidade do slug ignora o próprio produto.
+    CartItemInput:
+      type: object
+      properties:
+        product_id:
+          type: integer
+          description: Deve existir em products.id e estar ativo.
+        quantity:
+          type: integer
+          minimum: 1
+          maximum: 20
+      required:
+      - product_id
+      - quantity
+    QuantityInput:
+      type: object
+      properties:
+        quantity:
+          type: integer
+          minimum: 1
+          maximum: 20
+      description: O serviço aplica limite de 20 e valida estoque, inclusive no PATCH.
+      required:
+      - quantity
+    RegisterInput:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 255
+        email:
+          type: string
+          format: email
+          maxLength: 255
+          description: Único em users.email.
+        password:
+          type: string
+          format: password
+          minLength: 8
+        password_confirmation:
+          type: string
+          format: password
+          description: Deve coincidir com password.
+        guest_cart_token:
+          type: string
+          nullable: true
+          maxLength: 255
+          description: Validado, mas ignorado pelo serviço de cadastro; não mescla carrinhos.
+      required:
+      - name
+      - email
+      - password
+      - password_confirmation
+    LoginInput:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+          maxLength: 255
+        password:
+          type: string
+          format: password
+      required:
+      - email
+      - password
+    CheckoutInput:
+      type: object
+      properties:
+        address_id:
+          type: integer
+          description: Deve existir e pertencer ao usuário autenticado.
+        checkout_key:
+          type: string
+          format: uuid
+          maxLength: 64
+      required:
+      - address_id
+      - checkout_key
+  responses:
+    Error401:
+      description: Não autenticado, credenciais inválidas ou token de visitante ausente (conforme a operação).
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Message'
+    Error403:
+      description: Acesso restrito a administradores.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Message'
+    Error404:
+      description: Recurso não encontrado ou não pertence ao usuário/carrinho atual.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Message'
+    Error409:
+      description: Conflito com o estado atual do recurso; veja as regras da operação.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Message'
+    Error422:
+      description: Falha de validação dos campos ou das regras de negócio descritas na operação.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ValidationError'
+    Error429:
+      description: Limite de requisições excedido. Consulte Retry-After.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Message'

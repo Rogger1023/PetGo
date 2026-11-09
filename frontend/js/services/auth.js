@@ -27,6 +27,15 @@ export function getAuthUser() {
     }
 }
 
+export function clearAuthSession() {
+    sessionStorage.removeItem(TOKEN_KEY);
+    sessionStorage.removeItem(USER_KEY);
+
+    window.dispatchEvent(
+        new CustomEvent('petgo:auth-changed')
+    );
+}
+
 function extractToken(response) {
     return response?.access_token
         ?? response?.token
@@ -101,10 +110,7 @@ export async function logout() {
         }
     }
 
-    sessionStorage.removeItem(TOKEN_KEY);
-    sessionStorage.removeItem(USER_KEY);
-
-    window.dispatchEvent(new CustomEvent('petgo:auth-changed'));
+    clearAuthSession();
 
     return warning;
 }

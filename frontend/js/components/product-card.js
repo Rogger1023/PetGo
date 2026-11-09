@@ -1,4 +1,3 @@
-
 import { formatPrice } from '../utils/currency.js';
 import { renderProductImage } from './product-image.js';
 

@@ -1,0 +1,30 @@
+{
+    skip_install_trust
+    {$CADDY_GLOBAL_OPTIONS}
+    frankenphp {
+        {$FRANKENPHP_CONFIG}
+    }
+}
+
+{$CADDY_EXTRA_CONFIG}
+
+{$SERVER_NAME:localhost} {
+    root * {$SERVER_ROOT:public/}
+    @compressible not path /.well-known/mercure
+    encode @compressible zstd br gzip
+
+    {$CADDY_SERVER_EXTRA_DIRECTIVES}
+
+    # Static documentation never enters the Laravel front controller.
+    @apiDocs path /api/docs /api/docs/*
+    handle @apiDocs {
+        rewrite /api/docs /api/docs/index.html
+        file_server
+    }
+
+    handle {
+        php_server
+    }
+}
+
+import Caddyfile.d/*.caddyfile

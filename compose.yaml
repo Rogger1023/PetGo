@@ -40,8 +40,8 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     environment:
-      APP_ENV: local
-      APP_DEBUG: "true"
+      APP_ENV: ${APP_ENV:-local}
+      APP_DEBUG: ${APP_DEBUG:-true}
       APP_KEY: ${APP_KEY:-}
       SESSION_DRIVER: file
       DB_CONNECTION: mysql

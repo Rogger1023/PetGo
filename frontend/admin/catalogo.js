@@ -1,5 +1,5 @@
 import { apiRequest } from '../js/api.js';
-import { getAuthToken } from '../js/services/auth.js';
+import { getAuthToken,clearAuthSession } from '../js/services/auth.js';
 
 const $ = (selector) => document.querySelector(selector);
 
@@ -614,7 +614,13 @@ async function initializeCatalog() {
         }
 
         if (error.status === 401) {
-            showStatus('Sessão expirada. Faça login novamente.', true);
+            clearAuthSession();
+
+            showStatus(
+                'Sessão expirada. Faça login novamente.',
+                true
+            );
+
             return;
         }
 
