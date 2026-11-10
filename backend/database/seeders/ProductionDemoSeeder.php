@@ -94,3 +94,4 @@ class ProductionDemoSeeder extends Seeder
                 'Ração Sênior para Cães 3 kg',
                 'demo-racao-senior-caes-3kg',
                 'Alimento para cães em fase sênior.',
+            ]
