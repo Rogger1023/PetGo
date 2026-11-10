@@ -226,3 +226,73 @@
         grid-template-columns: 1fr;
     }
 }
+
+#account-settings[hidden],
+#account-address-form[hidden] {
+    display: none;
+}
+
+.account-settings {
+    margin-top: 28px;
+}
+
+.account-settings h3 {
+    margin: 24px 0 12px;
+}
+
+.account-address-form {
+    margin-top: 18px;
+}
+
+.account-address-card {
+    padding: 16px;
+    margin: 12px 0;
+
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+}
+
+.account-address-card p {
+    margin: 8px 0;
+    overflow-wrap: anywhere;
+}
+
+.account-address-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.account-action-button {
+    margin-top: 10px;
+    min-height: 40px;
+    padding: 8px 14px;
+
+    background: transparent;
+    color: var(--color-primary);
+
+    border: 1px solid var(--color-primary);
+    border-radius: var(--radius-sm);
+
+    cursor: pointer;
+}
+
+.account-action-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.account-checkbox {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.account-checkbox input {
+    width: auto;
+    min-height: auto;
+}
+
+#account-settings-status {
+    margin-top: 16px;
+}

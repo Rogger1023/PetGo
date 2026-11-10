@@ -130,3 +130,14 @@ body {
         padding: 24px 12px;
     }
 }
+.admin-order-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 24px;
+}
+
+.admin-order-actions .admin-action:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}

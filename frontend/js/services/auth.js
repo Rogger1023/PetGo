@@ -27,6 +27,21 @@ export function getAuthUser() {
     }
 }
 
+export function updateStoredAuthUser(user) {
+    if (!getAuthToken()) {
+        throw new Error('Usuário não autenticado.');
+    }
+
+    sessionStorage.setItem(
+        USER_KEY,
+        JSON.stringify(user)
+    );
+
+    window.dispatchEvent(
+        new CustomEvent('petgo:auth-changed')
+    );
+}
+
 export function clearAuthSession() {
     sessionStorage.removeItem(TOKEN_KEY);
     sessionStorage.removeItem(USER_KEY);
