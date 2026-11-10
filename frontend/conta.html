@@ -10,6 +10,7 @@
     <link rel="stylesheet" href="/css/auth.css">
 
     <script type="module" src="/js/auth-page.js"></script>
+    <script type="module" src="/js/account-settings.js"></script>
 </head>
 <body>
     <header id="site-header" class="site-header"></header>
@@ -126,6 +127,189 @@
                         </div>
 
                     </div>
+
+                    <section id="account-settings" class="account-settings" hidden>
+
+                        <h3>Editar dados pessoais</h3>
+
+                        <form id="profile-edit-form" class="auth-form">
+                            <label for="profile-name">Nome completo</label>
+
+                            <input
+                                id="profile-name"
+                                name="name"
+                                type="text"
+                                minlength="1"
+                                maxlength="255"
+                                autocomplete="name"
+                                required
+                            >
+
+                            <button id="profile-save" type="submit">
+                                Salvar nome
+                            </button>
+                        </form>
+
+                        <h3>Meus endereços</h3>
+
+                        <div
+                            id="account-address-list"
+                            aria-live="polite"
+                        ></div>
+
+                        <button
+                            id="account-address-new"
+                            type="button"
+                            class="account-action-button"
+                        >
+                            + Adicionar endereço
+                        </button>
+
+                        <form
+                            id="account-address-form"
+                            class="auth-form account-address-form"
+                            hidden
+                        >
+                            <h4 id="account-address-title">
+                                Adicionar endereço
+                            </h4>
+
+                            <label for="account-recipient">
+                                Nome do destinatário
+                            </label>
+
+                            <input
+                                id="account-recipient"
+                                name="recipient_name"
+                                maxlength="120"
+                                required
+                            >
+
+                            <label for="account-phone">Telefone</label>
+
+                            <input
+                                id="account-phone"
+                                name="phone"
+                                type="tel"
+                                minlength="8"
+                                maxlength="20"
+                                required
+                            >
+
+                            <label for="account-postal-code">CEP</label>
+
+                            <input
+                                id="account-postal-code"
+                                name="postal_code"
+                                inputmode="numeric"
+                                pattern="[0-9]{5}-?[0-9]{3}"
+                                placeholder="00000-000"
+                                required
+                            >
+
+                            <label for="account-street">Rua</label>
+
+                            <input
+                                id="account-street"
+                                name="street"
+                                maxlength="180"
+                                required
+                            >
+
+                            <label for="account-number">Número</label>
+
+                            <input
+                                id="account-number"
+                                name="number"
+                                maxlength="20"
+                                required
+                            >
+
+                            <label for="account-complement">
+                                Complemento (opcional)
+                            </label>
+
+                            <input
+                                id="account-complement"
+                                name="complement"
+                                maxlength="120"
+                            >
+
+                            <label for="account-neighborhood">
+                                Bairro
+                            </label>
+
+                            <input
+                                id="account-neighborhood"
+                                name="neighborhood"
+                                maxlength="100"
+                                required
+                            >
+
+                            <label for="account-city">Cidade</label>
+
+                            <input
+                                id="account-city"
+                                name="city"
+                                maxlength="100"
+                                required
+                            >
+
+                            <label for="account-state">
+                                Estado (UF)
+                            </label>
+
+                            <input
+                                id="account-state"
+                                name="state"
+                                minlength="2"
+                                maxlength="2"
+                                placeholder="PR"
+                                required
+                            >
+
+                            <label for="account-reference">
+                                Referência (opcional)
+                            </label>
+
+                            <input
+                                id="account-reference"
+                                name="reference"
+                                maxlength="255"
+                            >
+
+                            <label class="account-checkbox">
+                                <input
+                                    type="checkbox"
+                                    name="is_default"
+                                >
+                                Definir como endereço principal
+                            </label>
+
+                            <button
+                                id="account-address-save"
+                                type="submit"
+                            >
+                                Salvar endereço
+                            </button>
+
+                            <button
+                                id="account-address-cancel"
+                                class="account-action-button"
+                                type="button"
+                            >
+                                Cancelar
+                            </button>
+                        </form>
+
+                        <p
+                            id="account-settings-status"
+                            role="status"
+                            aria-live="polite"
+                        ></p>
+
+                    </section>
+
 
                     <div class="account-shortcuts">
 

@@ -40,6 +40,66 @@ function addDetail(parent, label, value) {
     parent.appendChild(row);
 }
 
+async function executeOrderAction(id, action, button) {
+    const actions = {
+        confirmPayment: {
+            endpoint: `admin/orders/${encodeURIComponent(id)}/confirm-payment`,
+            method: 'POST',
+            message: 'Deseja confirmar o pagamento deste pedido?',
+            success: 'Pagamento confirmado com sucesso.'
+        },
+        ship: {
+            endpoint: `admin/orders/${encodeURIComponent(id)}/status`,
+            method: 'PATCH',
+            body: { status: 'shipped' },
+            message: 'Deseja marcar este pedido como enviado?',
+            success: 'Pedido marcado como enviado.'
+        },
+        deliver: {
+            endpoint: `admin/orders/${encodeURIComponent(id)}/status`,
+            method: 'PATCH',
+            body: { status: 'delivered' },
+            message: 'Deseja marcar este pedido como entregue?',
+            success: 'Pedido marcado como entregue.'
+        }
+    };
+
+    const config = actions[action];
+
+    if (!config || !window.confirm(config.message)) {
+        return;
+    }
+
+    button.disabled = true;
+    button.textContent = 'Processando...';
+
+    try {
+        await apiRequest(config.endpoint, {
+            method: config.method,
+            token: getAuthToken(),
+            ...(config.body ? { body: config.body } : {})
+        });
+
+        await initializeAdmin();
+
+        await showOrder(id);
+
+        setStatus(config.success);
+    } catch (error) {
+        setStatus(
+            `Não foi possível atualizar o pedido: ${error.message}`,
+            true
+        );
+
+        button.disabled = false;
+        button.textContent = {
+            confirmPayment: 'Confirmar pagamento',
+            ship: 'Marcar como enviado',
+            deliver: 'Marcar como entregue'
+        }[action];
+    }
+}
+
 async function showOrder(id) {
     detailsSection.hidden = false;
     detailsContent.replaceChildren();
@@ -82,6 +142,47 @@ async function showOrder(id) {
                     money(item.line_total_cents)
                 );
             }
+        }
+        
+        const orderActions = {
+            pending_payment: {
+                label: 'Confirmar pagamento',
+                action: 'confirmPayment'
+            },
+            processing: {
+                label: 'Marcar como enviado',
+                action: 'ship'
+            },
+            shipped: {
+                label: 'Marcar como entregue',
+                action: 'deliver'
+            }
+        };
+
+        const availableAction = orderActions[order.status];
+
+        if (availableAction) {
+            const actionsContainer = document.createElement('div');
+            actionsContainer.className = 'admin-order-actions';
+
+            const button = createElement(
+                'button',
+                availableAction.label
+            );
+
+            button.type = 'button';
+            button.className = 'admin-action';
+
+            button.addEventListener('click', () => {
+                executeOrderAction(
+                    order.id,
+                    availableAction.action,
+                    button
+                );
+            });
+
+            actionsContainer.appendChild(button);
+            detailsContent.appendChild(actionsContainer);
         }
 
         detailsSection.scrollIntoView({
