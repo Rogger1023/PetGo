@@ -30,7 +30,12 @@ COPY . /app
 COPY Caddyfile /etc/frankenphp/Caddyfile
 
 # Instala dependências e configura permissões
-RUN composer install --no-interaction --prefer-dist --optimize-autoloader \
+RUN composer install \
+        --no-dev \
+        --no-interaction \
+        --prefer-dist \
+        --no-progress \
+        --optimize-autoloader \
     && mkdir -p storage/app/public bootstrap/cache \
     && chown -R www-data:www-data storage bootstrap/cache
 
