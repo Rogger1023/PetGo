@@ -14,19 +14,16 @@ class OrderHistoryController extends Controller
         int $order
     ): AnonymousResourceCollection {
 
-        // Busca somente pedidos do cliente autenticado.
         $customerOrder = $request->user()
             ->orders()
             ->whereKey($order)
             ->firstOrFail();
 
-        // Recupera os eventos na ordem em que ocorreram.
         $histories = $customerOrder
             ->statusHistories()
             ->orderBy('id')
             ->get();
 
-        // Converte os eventos em resposta JSON.
         return OrderStatusHistoryResource::collection(
             $histories
         );

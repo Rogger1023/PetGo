@@ -28,10 +28,8 @@ class AuthController extends Controller
     {
         $credentials = $request->validated();
 
-        // Obtém o token opcional do carrinho visitante.
         $guestCartToken = $request->header('X-Guest-Cart-Token');
 
-        // Realiza o login e, quando houver token, mescla os carrinhos.
         $result = $this->authService->login(
             $credentials,
             $guestCartToken

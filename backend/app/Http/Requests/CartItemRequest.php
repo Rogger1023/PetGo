@@ -8,7 +8,6 @@ class CartItemRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        // Autenticação e acesso ao carrinho devem ser protegidos pela aplicação.
         return true;
     }
 

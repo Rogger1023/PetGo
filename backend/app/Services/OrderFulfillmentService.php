@@ -16,7 +16,6 @@ class OrderFulfillmentService
     ?User $actor = null
     ): Order {
 
-        // 1. Aceita apenas estados de logística.
         if (!in_array($targetStatus, ['shipped', 'delivered'], true)) {
             throw ValidationException::withMessages([
                 'status' => 'Status de destino inválido.',
@@ -28,14 +27,11 @@ class OrderFulfillmentService
             $targetStatus,
             $actor
         ) {
-
-            // 2. Bloqueia o pedido durante a atualização.
             $order = Order::query()
                 ->whereKey($orderId)
                 ->lockForUpdate()
                 ->firstOrFail();
 
-            // 3. Bloqueia e verifica o pagamento.
             $payment = $order->payment()
                 ->lockForUpdate()
                 ->first();
@@ -50,7 +46,6 @@ class OrderFulfillmentService
                 );
             }
 
-            // 4. Repetir a mesma atualização não altera o pedido.
             if ($order->status === $targetStatus) {
                 return $order->load([
                     'user',
@@ -59,7 +54,6 @@ class OrderFulfillmentService
                 ]);
             }
 
-            // 5. Define as transições permitidas.
             $allowedTransitions = [
                 'processing' => 'shipped',
                 'shipped' => 'delivered',
@@ -67,21 +61,17 @@ class OrderFulfillmentService
 
             $nextStatus = $allowedTransitions[$order->status] ?? null;
 
-            // 6. Bloqueia transições inválidas.
             if ($nextStatus !== $targetStatus) {
                 throw new ConflictHttpException(
                     'Transição de status não permitida.'
                 );
             }
 
-            // Preserva o status anterior.
             $previousStatus = $order->status;
 
-            // Atualiza o pedido.
             $order->status = $targetStatus;
             $order->save();
 
-            // Registra a alteração no histórico.
             app(OrderStatusHistoryService::class)->record(
                 order: $order,
                 fromStatus: $previousStatus,
@@ -90,7 +80,6 @@ class OrderFulfillmentService
                 actor: $actor
             );
 
-            // Retorna o pedido atualizado.
             return $order->fresh([
                 'user',
                 'items',

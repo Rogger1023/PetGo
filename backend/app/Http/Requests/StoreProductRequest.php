@@ -9,7 +9,6 @@ class StoreProductRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        // A rota de gestão também deverá exigir autenticação e autorização.
         return true;
     }
 

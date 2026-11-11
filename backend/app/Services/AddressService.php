@@ -13,21 +13,16 @@ class AddressService
     {
         return DB::transaction(function () use ($user, $data) {
 
-            // Bloqueia o usuário para serializar alterações
-            // de endereços da mesma conta.
             $user = User::query()
                 ->whereKey($user->id)
                 ->lockForUpdate()
                 ->firstOrFail();
 
-            // O primeiro endereço será sempre o principal.
             $isFirstAddress = !$user->addresses()->exists();
 
             $makeDefault = $isFirstAddress
                 || (bool) ($data['is_default'] ?? false);
 
-            // A definição do endereço principal é controlada
-            // explicitamente pelo serviço.
             unset($data['is_default']);
 
             if ($makeDefault) {
@@ -36,7 +31,6 @@ class AddressService
                     ->update(['is_default' => false]);
             }
 
-            // Cria o endereço associado ao usuário autenticado.
             $address = $user->addresses()->create($data);
 
             $address->is_default = $makeDefault;
@@ -63,7 +57,6 @@ class AddressService
                 ->lockForUpdate()
                 ->firstOrFail();
 
-            // Só encontra endereços pertencentes ao usuário.
             $address = $user->addresses()
                 ->whereKey($addressId)
                 ->lockForUpdate()
@@ -76,8 +69,6 @@ class AddressService
 
             $makeDefault = (bool) ($data['is_default'] ?? false);
 
-            // Não permite desmarcar diretamente o principal.
-            // O cliente deve escolher outro endereço principal.
             if (
                 $hasDefaultField &&
                 !$makeDefault &&
@@ -91,7 +82,6 @@ class AddressService
 
             unset($data['is_default']);
 
-            // Atualiza somente os campos permitidos pelo Model.
             $address->fill($data);
 
             if ($makeDefault) {
@@ -128,7 +118,6 @@ class AddressService
 
             $address->delete();
 
-            // Se excluiu o principal, escolhe outro endereço.
             if ($wasDefault) {
                 $nextAddress = $user->addresses()
                     ->orderBy('id')

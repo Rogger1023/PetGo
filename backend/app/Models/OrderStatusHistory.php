@@ -9,10 +9,8 @@ class OrderStatusHistory extends Model
 {
     protected $table = 'order_status_histories';
 
-    // Não utilizamos updated_at nos eventos.
     public $timestamps = false;
 
-    // Evita atribuição em massa indiscriminada.
     protected $fillable = [];
 
     protected function casts(): array
@@ -22,13 +20,11 @@ class OrderStatusHistory extends Model
         ];
     }
 
-    // Cada histórico pertence a um pedido.
     public function order(): BelongsTo
     {
         return $this->belongsTo(Order::class);
     }
 
-    // Usuário responsável pela alteração.
     public function actor(): BelongsTo
     {
         return $this->belongsTo(
