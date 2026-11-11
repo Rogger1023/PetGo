@@ -63,7 +63,7 @@ services:
       timeout: 5s
       retries: 10
       start_period: 30s
-
+  
   db:
     image: mysql:8.4
 
@@ -83,7 +83,7 @@ services:
       interval: 10s
       timeout: 10s
       retries: 30
-      start_period: 300s
+      start_period: 900s
 
     networks:
       - app_network
