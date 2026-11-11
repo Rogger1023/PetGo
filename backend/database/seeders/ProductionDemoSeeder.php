@@ -8,10 +8,6 @@ use Illuminate\Database\Seeder;
 
 class ProductionDemoSeeder extends Seeder
 {
-    /**
-     * Popula o catálogo demonstrativo sem sobrescrever registros existentes.
-     * Não cria usuários ou credenciais de desenvolvimento.
-     */
     public function run(): void
     {
         $categories = [

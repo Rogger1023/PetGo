@@ -20,7 +20,6 @@ class AuthService
             'password' => $data['password'],
         ]);
 
-        // Todo usuário cadastrado publicamente será um cliente.
         $user->role = 'customer';
         $user->save();
 
@@ -36,7 +35,6 @@ class AuthService
             $credentials['email']
         )->first();
 
-        // 1. Valida as credenciais.
         if (
             !$user ||
             !Hash::check($credentials['password'], $user->password)
@@ -44,7 +42,6 @@ class AuthService
             return null;
         }
 
-        // 2. Mescla o carrinho visitante, quando informado.
         if ($guestCartToken !== null) {
             $this->cartMergeService->merge(
                 $user,
@@ -52,7 +49,6 @@ class AuthService
             );
         }
 
-        // 3. Gera o token Sanctum após a mesclagem.
         return $this->generateAuthData($user);
     }
 

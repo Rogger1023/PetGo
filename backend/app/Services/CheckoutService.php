@@ -25,13 +25,11 @@ class CheckoutService
             $addressId,
             $checkoutKey
         ) {
-            // 1. Serializa os checkouts deste usuário.
             User::query()
                 ->whereKey($user->id)
                 ->lockForUpdate()
                 ->firstOrFail();
 
-            // 2. Impede pedidos duplicados.
             $existingOrder = Order::query()
                 ->where('checkout_key', $checkoutKey)
                 ->first();
@@ -46,12 +44,10 @@ class CheckoutService
                 return $existingOrder->load('items', 'payment');
             }
 
-            // 3. Confirma que o endereço pertence ao usuário.
             $address = $user->addresses()
                 ->whereKey($addressId)
                 ->firstOrFail();
 
-            // 4. Localiza e bloqueia o carrinho ativo.
             $cart = $user->carts()
                 ->where('status', 'active')
                 ->lockForUpdate()
@@ -70,7 +66,6 @@ class CheckoutService
             $subtotal = 0;
             $orderLines = [];
 
-            // 5. Confere os produtos e calcula os valores.
             foreach ($items as $item) {
                 $product = Product::query()
                     ->whereKey($item->product_id)
@@ -117,11 +112,9 @@ class CheckoutService
                 ];
             }
 
-            // Frete provisoriamente gratuito nesta etapa.
             $shipping = 0;
             $total = $subtotal + $shipping;
 
-            // 6. Cria o pedido.
             $order = new Order();
             $order->user()->associate($user);
             $order->status = 'pending_payment';
@@ -142,7 +135,6 @@ class CheckoutService
                 'reference',
             ]);
             $order->save();
-            // Registra a criação do pedido no histórico.
             app(OrderStatusHistoryService::class)->record(
                 order: $order,
                 fromStatus: null,
@@ -150,7 +142,6 @@ class CheckoutService
                 source: 'checkout',
                 actor: $user
             );
-            // 7. Registra os itens e reserva o estoque.
             foreach ($orderLines as $line) {
                 $product = $line['product'];
 
@@ -181,13 +172,11 @@ class CheckoutService
 
             }
 
-            // 8. Registra um pagamento pendente.
             $payment = new Payment();
             $payment->order()->associate($order);
             $payment->status = 'pending';
             $payment->save();
 
-            // 9. Finaliza o carrinho utilizado.
             $cart->status = 'checked_out';
             $cart->save();
 

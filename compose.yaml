@@ -66,19 +66,25 @@ services:
 
   db:
     image: mysql:8.4
+
     environment:
       MYSQL_DATABASE: ${DB_NAME:-petgo}
       MYSQL_USER: ${DB_USER:-petgo_app}
       MYSQL_PASSWORD: ${DB_PASSWORD:?Defina DB_PASSWORD no arquivo .env}
       MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?Defina DB_ROOT_PASSWORD no arquivo .env}
+
     volumes:
       - mysql_data:/var/lib/mysql
+
     healthcheck:
-      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u root -p\"$$MYSQL_ROOT_PASSWORD\" --silent"]
-      interval: 5s
-      timeout: 5s
-      retries: 20
-      start_period: 20s
+      test:
+        - CMD-SHELL
+        - 'MYSQL_PWD="$$MYSQL_ROOT_PASSWORD" mysql -h 127.0.0.1 -u root -Nse "SELECT 1" >/dev/null 2>&1'
+      interval: 10s
+      timeout: 10s
+      retries: 30
+      start_period: 300s
+
     networks:
       - app_network
 

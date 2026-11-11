@@ -19,17 +19,14 @@ class StockMovementService
         ?Order $order = null,
         ?string $reason = null
     ): StockMovement {
-        // O estoque nunca pode ser negativo.
         if ($stockBefore < 0 || $stockAfter < 0) {
             throw new InvalidArgumentException(
                 'O estoque não pode ser negativo.'
             );
         }
 
-        // Calcula a diferença entre o estoque atual e anterior.
         $quantityDelta = $stockAfter - $stockBefore;
 
-        // Não registra uma movimentação sem alteração.
         if ($quantityDelta === 0) {
             throw new InvalidArgumentException(
                 'A movimentação deve alterar o estoque.'
@@ -38,15 +35,12 @@ class StockMovementService
 
         $movement = new StockMovement();
 
-        // Associa o produto à movimentação.
         $movement->product()->associate($product);
 
-        // Registra o responsável, quando disponível.
         if ($actor !== null) {
             $movement->actor()->associate($actor);
         }
 
-        // Associa um pedido, quando existir.
         if ($order !== null) {
             $movement->order()->associate($order);
         }

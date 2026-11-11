@@ -13,12 +13,10 @@ class AdminOrderHistoryController extends Controller
         int $order
     ): AnonymousResourceCollection {
 
-        // Administrador pode consultar qualquer pedido.
         $orderModel = Order::query()
             ->whereKey($order)
             ->firstOrFail();
 
-        // Carrega os eventos e seus responsáveis.
         $histories = $orderModel
             ->statusHistories()
             ->with('actor')
